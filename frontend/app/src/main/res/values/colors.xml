@@ -7,4 +7,7 @@
     <color name="teal_700">#FF018786</color>
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
+
+    <color name="green_text">#008080</color>
+    <color name="coach_text">#222227</color>
 </resources>

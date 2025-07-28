@@ -11,7 +11,8 @@
         android:id="@+id/splash_text"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:textSize="36sp"
+        android:textSize="50dp"
         android:textStyle="bold"
-        android:layout_centerInParent="true" />
+        android:layout_centerInParent="true"
+        android:text="GreenCoach" />
 </RelativeLayout>

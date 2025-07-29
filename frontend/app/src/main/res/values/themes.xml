@@ -13,4 +13,9 @@
         <item name="windowNoTitle">true</item>
 
     </style>
+
+    <style name="Theme.App.Splash" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+        <!-- 스플래시 화면 배경 -->
+        <item name="android:windowBackground">@drawable/splash_background</item>
+    </style>
 </resources>

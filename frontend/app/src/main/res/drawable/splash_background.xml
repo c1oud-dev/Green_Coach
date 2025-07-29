@@ -1,0 +1,10 @@
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- 배경색 -->
+    <item android:drawable="@color/colorPrimary" />
+    <!-- 중앙 로고 -->
+    <item>
+        <bitmap
+            android:src="@drawable/ic_leaf_logo"
+            android:gravity="center" />
+    </item>
+</layer-list>

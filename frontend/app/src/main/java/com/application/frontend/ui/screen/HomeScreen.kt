@@ -1,6 +1,5 @@
 package com.application.frontend.ui.screen
 
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -33,8 +32,10 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextFieldDefaults
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.tooling.preview.Preview
+import coil.compose.AsyncImage
+import com.application.frontend.model.NewsDto
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -214,19 +215,25 @@ fun HomeScreen(vm: NewsViewModel = viewModel()) {
                 contentPadding = PaddingValues(horizontal = 16.dp),
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                items(newsList) { item ->
+                // 중복 URL을 제거한 뒤 순회( 1) link 로 중복 제거, 2) NewsDto 타입 명시)
+                items(newsList.distinctBy { it.link }) { item: NewsDto ->  // :contentReference[oaicite:3]{index=3}
                     Card(
                         shape = RoundedCornerShape(12.dp),
                         modifier = Modifier.width(200.dp)
                     ) {
                         Column {
-                            Image(
-                                painter = painterResource(R.drawable.ic_news_placeholder),
-                                contentDescription = null,
+                            // Coil AsyncImage로 실제 URL 로드, 로딩/에러 시 placeholder 표시
+                            AsyncImage(
+                                model = item.image,
+                                contentDescription = item.title,
                                 modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(100.dp)
-                            )
+                                .fillMaxWidth()
+                                .height(100.dp)
+                                .clip(RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp)),
+                                placeholder = painterResource(R.drawable.ic_news_placeholder),
+                                error       = painterResource(R.drawable.ic_news_placeholder),
+                                contentScale = ContentScale.Crop
+                            )  // :contentReference[oaicite:4]{index=4}
                             Row(
                                 Modifier
                                     .fillMaxWidth()

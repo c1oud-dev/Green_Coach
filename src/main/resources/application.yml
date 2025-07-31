@@ -1,6 +1,15 @@
 spring:
   application:
     name: greencoach
+  profiles:
+    active: local
 
 server:
   port: 8080
+
+naver:
+  client:
+    id: ${NAVER_CLIENT_ID}
+    secret: ${NAVER_CLIENT_SECRET}
+  news:
+    base-url: https://openapi.naver.com

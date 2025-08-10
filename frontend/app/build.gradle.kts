@@ -26,9 +26,7 @@ android {
         viewBinding = true
         buildConfig = true
     }
-    composeOptions {
-        kotlinCompilerExtensionVersion = "1.4.7"
-    }
+
     kotlinOptions {
         jvmTarget = "11"
     }
@@ -52,11 +50,9 @@ dependencies {
     implementation("androidx.compose.ui:ui-graphics")
     implementation("androidx.compose.ui:ui-tooling-preview")
     implementation("androidx.compose.material3:material3")
-    implementation(libs.androidx.material3.android)
-    implementation(libs.androidx.appcompat)
+    implementation("androidx.compose.material3:material3-window-size-class")
     debugImplementation("androidx.compose.ui:ui-tooling")
-    implementation("androidx.compose.material3:material3:1.1.0")
-    implementation("androidx.compose.material3:material3-window-size-class:1.0.1")
+    implementation("androidx.appcompat:appcompat:1.7.0")  // alias 대신 명시 버전
 
     // Foundation (FlowRow, LazyRow.items, LazyVerticalGrid)
     implementation("androidx.compose.foundation:foundation")
@@ -76,7 +72,7 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
 
     // Icons
-    implementation("androidx.compose.material:material-icons-extended:1.4.3")
+    implementation("androidx.compose.material:material-icons-extended")
     implementation("com.google.android.material:material:1.9.0")
 
     // Accompanist (optional, remove if you’re using Foundation FlowRow)

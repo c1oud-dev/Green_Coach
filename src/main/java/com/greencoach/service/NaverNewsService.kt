@@ -23,8 +23,8 @@ class NaverNewsService(
 ) {
     private val client: WebClient = webClientBuilder
         .baseUrl(baseUrl)
-        .defaultHeader("Naver-Client-Id", clientId)
-        .defaultHeader("Naver-Client-Secret", clientSecret)
+        .defaultHeader("X-Naver-Client-Id", clientId)
+        .defaultHeader("X-Naver-Client-Secret", clientSecret)
         .build()
 
     suspend fun search(query: String, display: Int = 5): List<NewsDto> {

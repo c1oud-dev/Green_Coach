@@ -1,6 +1,7 @@
 package com.application.frontend.ui.screen
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -33,13 +34,16 @@ import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.tooling.preview.Preview
+import androidx.navigation.NavHostController
 import coil.compose.AsyncImage
 import com.application.frontend.model.NewsDto
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-fun HomeScreen(vm: NewsViewModel = viewModel()) {
+fun HomeScreen(
+    navController: NavHostController,
+    vm: NewsViewModel = viewModel()
+) {
     var searchText by remember { mutableStateOf("") }
     val newsList   = vm.news
     val hashtags   = listOf("#캔", "#발광경질", "#부직포가방", "#페트병", "#유리병")
@@ -179,7 +183,14 @@ fun HomeScreen(vm: NewsViewModel = viewModel()) {
                         horizontalArrangement = Arrangement.SpaceEvenly
                     ) {
                         rowCats.forEach { cat ->
-                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                modifier = Modifier
+                                    .clickable {
+                                        // 클릭 시 CategoryScreen 으로 이동
+                                        navController.navigate("category/${cat.name}")
+                                    }
+                            ) {
                                 Icon(
                                     painter = painterResource(cat.iconRes),
                                     contentDescription = cat.name,
@@ -258,10 +269,4 @@ fun HomeScreen(vm: NewsViewModel = viewModel()) {
             Spacer(Modifier.height(16.dp))
         }
     }
-}
-
-@Preview(showBackground = true)
-@Composable
-fun HomeScreenPreview() {
-    HomeScreen()
 }

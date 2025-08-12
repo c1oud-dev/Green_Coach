@@ -1,8 +1,10 @@
 package com.application.frontend.viewmodel
 
 import android.content.Context
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.application.frontend.BuildConfig
 import com.application.frontend.R
 import com.application.frontend.data.CategoryApi
 import com.application.frontend.model.Category
@@ -15,12 +17,12 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
+private const val TAG = "CategoryAPI"
 @HiltViewModel
 class CategoryViewModel @Inject constructor(
     private val api: CategoryApi,
     @ApplicationContext private val context: Context
 ) : ViewModel() {
-
     // ① 상단에 표시할 메인 카테고리 리스트를 미리 정의
     val topCategories: List<Category> = listOf(
         Category(R.drawable.ic_pet,     "페트병"),
@@ -45,7 +47,8 @@ class CategoryViewModel @Inject constructor(
                 api.getSubCategories(categoryName)              // List<SubCategoryDto>
             }.onSuccess { remote: List<SubCategoryDto> ->
                 _subs.value = remote.map { it.toUi() }    // → List<Category(iconRes:Int, name:String)
-            }.onFailure {
+            }.onFailure { e ->
+                if (BuildConfig.DEBUG) Log.e(TAG, "loadSubs failed: $categoryName", e)
                 _subs.value = emptyList()   //실패 시 빈 리스트
             }
         }

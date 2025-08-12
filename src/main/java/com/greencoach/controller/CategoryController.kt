@@ -17,8 +17,8 @@ class CategoryController (
     fun fetchTopCategories(): List<CategoryDto> =
         categoryService.getTopCategories()
 
-    /** GET  /api/categories/{name}/subs */
-    @GetMapping("/{name}/subs")
+    /** GET  /api/categories/{name}/sub */
+    @GetMapping("/{name}/sub")
     fun fetchSubCategories(
         @PathVariable("name") name: String
     ): List<CategoryDto> =

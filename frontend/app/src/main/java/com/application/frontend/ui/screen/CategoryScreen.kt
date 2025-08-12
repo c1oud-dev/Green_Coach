@@ -2,6 +2,7 @@ package com.application.frontend.ui.screen
 
 import android.content.res.Resources
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -28,7 +29,9 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
@@ -173,16 +176,16 @@ fun CategoryScreen(
                             modifier = Modifier.size(72.dp),
                             color = MaterialTheme.colorScheme.surfaceVariant
                         ) {
-                            Box(
-                                modifier = Modifier.fillMaxSize(),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(
-                                    painter = painterResource(id = safeIconRes),
-                                    contentDescription = sub.name,
-                                    modifier = Modifier.size(40.dp)
-                                )
-                            }
+                            // 원 내부에 사진을 "그대로" 담기: 잘리지 않도록 Fit 사용
+                            Image(
+                                painter = painterResource(id = safeIconRes),
+                                contentDescription = sub.name,
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    //.padding(12.dp)         // 가장자리 여백(원에 딱 맞추려면 줄이거나 제거)
+                                    .clip(CircleShape),     // 표면과 동일하게 원형으로 클립
+                                contentScale = ContentScale.Fit // 크기만 맞추고 크롭 없음
+                            )
                         }
                         Spacer(Modifier.height(8.dp))
                         Text(

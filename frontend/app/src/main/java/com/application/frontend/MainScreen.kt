@@ -12,6 +12,7 @@ import androidx.compose.ui.Modifier
 import androidx.navigation.NavType
 import androidx.navigation.compose.*
 import androidx.navigation.navArgument
+import com.application.frontend.navigation.Routes
 import com.application.frontend.navigation.Screen
 import com.application.frontend.ui.screen.*
 
@@ -70,8 +71,9 @@ fun MainScreen() {
             composable(Screen.Community.route) { CommunityScreen() }
             composable(Screen.Profile.route)   { ProfileScreen() }
 
+            //카테고리
             composable(
-                route = "category/{categoryName}",
+                route = Routes.Category,
                 arguments = listOf(navArgument("categoryName") {
                     type = NavType.StringType
                 })
@@ -82,6 +84,24 @@ fun MainScreen() {
                     categoryName    = categoryName
                 )
             }
+
+            // 🔹 상세
+            composable(
+                route = Routes.Detail,
+                arguments = listOf(
+                    navArgument("key") { type = NavType.StringType },
+                    navArgument("name") { type = NavType.StringType }
+                )
+            ) { backStackEntry ->
+                val key  = backStackEntry.arguments?.getString("key") ?: ""
+                val name = backStackEntry.arguments?.getString("name") ?: ""
+                SubCategoryDetailScreen(
+                    key = key,
+                    name = name,
+                    onBack = { navController.popBackStack() }
+                )
+            }
+
         }
     }
 }

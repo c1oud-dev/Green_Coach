@@ -21,6 +21,7 @@ private const val TAG = "CategoryAPI"
 @HiltViewModel
 class CategoryViewModel @Inject constructor(
     private val api: CategoryApi,
+    @Suppress("unused")
     @ApplicationContext private val context: Context
 ) : ViewModel() {
     // ① 상단에 표시할 메인 카테고리 리스트를 미리 정의
@@ -59,6 +60,6 @@ class CategoryViewModel @Inject constructor(
 private fun SubCategoryDto.toUi(): Category {
     val key = imageUrl.substringAfterLast('/').substringBeforeLast('.') // "pet_water"
     val iconId = SubCategoryIcons.byKey[key] ?: R.drawable.ic_placeholder
-    return Category(iconRes = iconId, name = name)
+    return Category(iconRes = iconId, name = name, key = key)
 }
 

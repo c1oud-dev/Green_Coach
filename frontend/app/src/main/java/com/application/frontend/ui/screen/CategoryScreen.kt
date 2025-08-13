@@ -40,6 +40,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import com.application.frontend.viewmodel.CategoryViewModel
 import com.application.frontend.R
+import com.application.frontend.navigation.Routes
 
 @OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 @Composable
@@ -153,7 +154,12 @@ fun CategoryScreen(
                 items(subCategories) { sub ->
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally,
-                        modifier = Modifier.clickable { /* TODO: 클릭 처리 */ }
+                        modifier = Modifier.clickable {
+                            /* TODO: 클릭 처리 */
+                            if (sub.key.isNotEmpty()) {
+                                navController.navigate(Routes.detail(sub.key, sub.name))
+                            }
+                        }
                     ) {
                         // ① Context 얻기
                         val context = LocalContext.current

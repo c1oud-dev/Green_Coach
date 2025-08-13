@@ -16,7 +16,8 @@ android {
         targetSdk = 36
         versionCode = 1
         versionName = "1.0"
-
+        // 개발용 로컬 서버
+        buildConfigField("String", "BASE_URL", "\"http://10.0.2.2:8080/\"")
         buildConfigField("String", "NAVER_CLIENT_ID", "\"${properties["naver.client.id"]}\"")
         buildConfigField("String", "NAVER_CLIENT_SECRET", "\"${properties["naver.client.secret"]}\"")
 
@@ -24,9 +25,9 @@ android {
     }
 
     buildFeatures {
+        buildConfig = true
         compose = true
         viewBinding = true
-        buildConfig = true
     }
 
     kotlinOptions {

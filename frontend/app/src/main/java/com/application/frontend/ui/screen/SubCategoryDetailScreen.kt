@@ -131,8 +131,8 @@ fun SubCategoryDetailContent(
                     model = imageModel,
                     contentDescription = detail.name,
                     modifier = Modifier
-                        .height(180.dp)
-                        .padding(horizontal = 32.dp),
+                        .height(140.dp)
+                        .padding(horizontal = 16.dp),
                     contentScale = ContentScale.Fit
                 )
             }

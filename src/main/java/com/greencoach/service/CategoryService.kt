@@ -39,11 +39,9 @@ class CategoryService {
     private val subCategoriesMap: Map<String, List<CategoryDto>> = mapOf(
         "페트병" to listOf(
             CategoryDto("생수",    "/images/sub/pet_water.png"),
-            /*CategoryDto("음료수",  "/images/sub/pet_drink.png"),
-            CategoryDto("맥주",    "/images/sub/pet_beer.png"),
-            CategoryDto("소주",    "/images/sub/pet_soju.png"),
-            CategoryDto("탄산",    "/images/sub/pet_soda.png"),
-            CategoryDto("요구르트","/images/sub/pet_yogurt.png")*/
+            CategoryDto("음료수",  "/images/sub/pet_drink.png"),
+            CategoryDto("우유",    "/images/sub/pet_milk.png"),
+            CategoryDto("막걸리",    "/images/sub/pet_makgeolli.jpg"),
         ),
         // …다른 topCategories 키에 대해 매핑
     )

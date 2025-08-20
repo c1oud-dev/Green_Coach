@@ -3,6 +3,8 @@ spring:
     name: greencoach
   profiles:
     active: local
+  codec:
+    max-in-memory-size: 20MB
 
 server:
   port: 8080
@@ -13,3 +15,11 @@ naver:
     secret: ${NAVER_CLIENT_SECRET}
   news:
     base-url: https://openapi.naver.com
+
+co2:
+  base-url: https://raw.githubusercontent.com/owid/co2-data/master
+  co2-csv-path: /owid-co2-data.csv  # 안정적인 GitHub raw CSV
+  # 가져올 연도 개수(최근 N년). 카드에서는 최신값만 쓰지만 API는 시계열도 내려줍니다.
+  years-limit: 30
+  connect-timeout-ms: 5000
+  read-timeout-ms: 5000

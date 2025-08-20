@@ -2,6 +2,7 @@ package com.application.frontend.di
 
 import com.application.frontend.BuildConfig
 import com.application.frontend.data.CategoryApi
+import com.application.frontend.data.co2.EmissionsApi
 import com.application.frontend.data.detail.DetailApi
 import dagger.Module
 import dagger.Provides
@@ -41,4 +42,9 @@ object NetworkModule {
     @Singleton
     fun provideDetailApi(retrofit: Retrofit): DetailApi =
         retrofit.create(DetailApi::class.java)
+
+    @Provides
+    @Singleton
+    fun provideEmissionsApi(retrofit: Retrofit): EmissionsApi =
+        retrofit.create(EmissionsApi::class.java)
 }

@@ -32,6 +32,7 @@ class Co2Service (
             .uri(co2CsvPath) // 상대경로 사용
             .retrieve()
             .bodyToMono(String::class.java)
+            .defaultIfEmpty("")                     // ⬅️ 빈 응답이면 빈 문자열로 대체
             .map { csv -> parseCsvAndBuildByCodeFlexible(code, csv) }
     }
 
@@ -94,8 +95,15 @@ class Co2Service (
         )
     }
 
-    private fun emptySnapshot(targetCode: String) = Co2SnapshotDto(
-        emissions = Co2SeriesDto("${targetCode} Emissions", emptyList()),
-        reduction = Co2SeriesDto("${targetCode} Reduction", emptyList())
-    )
+    private fun emptySnapshot(targetCode: String): Co2SnapshotDto {
+        val label = when (targetCode) {
+            "OWID_WRL" -> "World"
+            "KOR" -> "Korea"
+            else -> targetCode
+        }
+        return Co2SnapshotDto(
+            emissions = Co2SeriesDto("$label Emissions", emptyList()),
+            reduction = Co2SeriesDto("$label Reduction", emptyList())
+        )
+    }
 }

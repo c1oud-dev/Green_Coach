@@ -45,6 +45,12 @@ dependencies {
 	testImplementation("org.mockito.kotlin:mockito-kotlin:4.+")
 	testImplementation("org.mockito:mockito-inline:5.+")
 	testImplementation("io.projectreactor:reactor-test")
+
+	testImplementation("org.junit.jupiter:junit-jupiter:5.10.2")
+	testImplementation("io.projectreactor:reactor-test:3.6.4")
+	testImplementation("com.squareup.okhttp3:mockwebserver:4.12.0")
+	testImplementation("org.jetbrains.kotlin:kotlin-test") // assertEquals 등
+
 	testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 	implementation(kotlin("stdlib-jdk8"))
 }

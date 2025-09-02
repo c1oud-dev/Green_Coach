@@ -31,28 +31,32 @@ android {
     }
 
     kotlinOptions {
-        jvmTarget = "11"
+        jvmTarget = "17"
+        freeCompilerArgs += listOf(
+            "-opt-in=androidx.compose.material3.ExperimentalMaterial3Api"
+        )
     }
 
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_11
-        targetCompatibility = JavaVersion.VERSION_11
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
+        isCoreLibraryDesugaringEnabled = true   // ← java.time(Instant/Duration) 사용 가능
     }
 }
 
 dependencies {
     // Compose BOM
-    implementation(platform("androidx.compose:compose-bom:2024.06.00"))
+    implementation(platform("androidx.compose:compose-bom:2024.08.00"))
 
     // Core & Activity
     implementation("androidx.core:core-ktx:1.12.0")
-    implementation("androidx.activity:activity-compose:1.8.0")
+    implementation("androidx.activity:activity-compose:1.9.2")
 
     // Compose UI & Material3
     implementation("androidx.compose.ui:ui")
     implementation("androidx.compose.ui:ui-graphics")
     implementation("androidx.compose.ui:ui-tooling-preview")
-    implementation("androidx.compose.material3:material3")
+    implementation("androidx.compose.material3:material3-android")
     implementation("androidx.compose.material3:material3-window-size-class")
     debugImplementation("androidx.compose.ui:ui-tooling")
     implementation("androidx.appcompat:appcompat:1.7.0")  // alias 대신 명시 버전
@@ -62,9 +66,9 @@ dependencies {
     implementation("androidx.compose.foundation:foundation-layout")
 
     // Navigation & Lifecycle
-    implementation("androidx.navigation:navigation-compose:2.7.0")
-    implementation("androidx.lifecycle:lifecycle-runtime-compose:2.6.2")
-    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.6.2")
+    implementation("androidx.navigation:navigation-compose:2.8.0")
+    implementation("androidx.lifecycle:lifecycle-runtime-compose:2.8.4")
+    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.4")
 
     // Coil for image loading
     implementation("io.coil-kt:coil-compose:2.5.0")
@@ -101,7 +105,9 @@ dependencies {
     androidTestImplementation("androidx.test:rules:1.6.1")
     debugImplementation("androidx.compose.ui:ui-test-manifest:1.6.8")
 
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.0.4")
+
     androidTestImplementation("androidx.test.espresso:espresso-core:3.5.1")
-    androidTestImplementation(platform("androidx.compose:compose-bom:2024.06.00"))
+    androidTestImplementation(platform("androidx.compose:compose-bom:2024.08.00"))
     androidTestImplementation("androidx.compose.ui:ui-test-junit4")
 }

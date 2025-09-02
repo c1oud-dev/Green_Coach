@@ -9,12 +9,14 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavType
 import androidx.navigation.compose.*
 import androidx.navigation.navArgument
 import com.application.frontend.navigation.Routes
 import com.application.frontend.navigation.Screen
 import com.application.frontend.ui.screen.*
+import com.application.frontend.viewmodel.CommunityViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -68,7 +70,14 @@ fun MainScreen() {
             composable(Screen.Home.route)      { HomeScreen(navController) }
             composable(Screen.Forest.route)    { ForestScreen() }
             composable(Screen.Scan.route)      { ScanScreen() }
-            composable(Screen.Community.route) { CommunityScreen() }
+            composable(Screen.Community.route) {
+                val vm: CommunityViewModel = hiltViewModel()
+                CommunityScreen(
+                    viewModel = vm,
+                    onNavigateProfile = { navController.navigate(Screen.Profile.route) }
+                )
+            }
+
             composable(Screen.Profile.route)   { ProfileScreen() }
 
             //카테고리

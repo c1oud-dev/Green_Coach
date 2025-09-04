@@ -22,9 +22,18 @@ sealed class Screen(val route: String, val icon: ImageVector, val label: String)
 object Routes {
     // MainScreen에 이미 쓰는 파라미터명에 맞춤
     const val Category = "category/{categoryName}"
-
     // 서브카테고리 상세
     const val Detail   = "detail/{key}/{name}"
+    // 회원가입 라우트 추가
+    const val SignUp   = "auth/signup"
+    const val ForgotPassword   = "auth/forgot"
+    const val VerifyCode       = "auth/verify"          // 4자리 코드 입력
+    const val ResetPassword    = "auth/reset"           // 새 비밀번호 설정
+    const val PasswordChanged  = "auth/reset/success"   // 완료 화면
+
+    // 로그인 후 프로필 홈 & 프로필 편집
+    const val ProfileHome      = "profile/home"
+    const val EditProfile      = "profile/edit"
 
     fun category(categoryName: String) =
         "category/${Uri.encode(categoryName)}"

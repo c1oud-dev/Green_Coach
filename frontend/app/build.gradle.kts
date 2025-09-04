@@ -4,6 +4,7 @@ plugins {
     alias(libs.plugins.kotlin.compose)
     id("com.google.dagger.hilt.android") version "2.51.1"
     kotlin("kapt")
+    id("kotlin-parcelize")
 }
 
 android {
@@ -21,7 +22,7 @@ android {
         buildConfigField("String", "NAVER_CLIENT_ID", "\"${properties["naver.client.id"]}\"")
         buildConfigField("String", "NAVER_CLIENT_SECRET", "\"${properties["naver.client.secret"]}\"")
 
-        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        testInstrumentationRunner = "com.application.frontend.HiltTestRunner"
     }
 
     buildFeatures {
@@ -96,14 +97,25 @@ dependencies {
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.8.1")
 
     // retrofit / okhttp
-    testImplementation("com.squareup.okhttp3:okhttp:4.12.0")
     testImplementation("com.squareup.okhttp3:mockwebserver:4.12.0")
-    testImplementation("com.squareup.retrofit2:retrofit:2.11.0")
 
     // --- androidTest (UI 테스트 돌릴 때만) ---
     androidTestImplementation("androidx.test.ext:junit:1.2.1")
     androidTestImplementation("androidx.test:rules:1.6.1")
     debugImplementation("androidx.compose.ui:ui-test-manifest:1.6.8")
+
+    // Hilt instrumentation testing
+    androidTestImplementation("com.google.dagger:hilt-android-testing:2.51.1")
+    kaptAndroidTest("com.google.dagger:hilt-compiler:2.51.1")
+
+    // MockWebServer는 'androidTest'에서도 필요
+    androidTestImplementation("com.squareup.okhttp3:mockwebserver:4.12.0")
+
+    // AndroidX test runner (룰과 함께 쓰임)
+    androidTestImplementation("androidx.test:runner:1.6.1")
+
+    // Espresso 버전 정합성(권장)
+    androidTestImplementation("androidx.test.espresso:espresso-core:3.6.1")
 
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.0.4")
 

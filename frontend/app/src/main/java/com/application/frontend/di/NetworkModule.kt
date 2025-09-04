@@ -1,11 +1,16 @@
 package com.application.frontend.di
 
 import com.application.frontend.BuildConfig
+import com.application.frontend.data.BackendApi
 import com.application.frontend.data.CategoryApi
 import com.application.frontend.data.co2.EmissionsApi
 import com.application.frontend.data.community.CommunityApi
 import com.application.frontend.data.community.CommunityRepository
 import com.application.frontend.data.detail.DetailApi
+import com.application.frontend.data.remote.AuthApi
+import com.application.frontend.data.repository.AuthRepository
+import com.application.frontend.data.repository.AuthRepositoryImpl
+import com.application.frontend.data.repository.SessionToken
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -32,7 +37,31 @@ object NetworkModule {
     @Singleton
     fun provideOkHttp(): OkHttpClient =
         OkHttpClient.Builder()
-            // (원하면 debug에만 로깅 인터셉터 추가)
+            // 🔹 개발 중 요청/응답 확인용 로깅 (원하면 buildType으로 레벨 분기)
+            .addInterceptor(
+                okhttp3.logging.HttpLoggingInterceptor().apply {
+                    level = okhttp3.logging.HttpLoggingInterceptor.Level.BODY
+                }
+            )
+            // Authorization 헤더 자동 부착
+            .addInterceptor { chain ->
+                val original = chain.request()
+                val path = original.url.encodedPath
+                val token = SessionToken.token
+
+                val req = if (!path.startsWith("/auth") && !token.isNullOrBlank()) {
+                    original.newBuilder()
+                        .addHeader("Authorization", "Bearer $token")
+                        .build()
+                } else original
+
+                chain.proceed(req)
+            }
+
+            // 🔹 타임아웃 기본값 강화 (네트워크 품질 편차 대응)
+            .connectTimeout(java.time.Duration.ofSeconds(10))
+            .readTimeout(java.time.Duration.ofSeconds(20))
+            .writeTimeout(java.time.Duration.ofSeconds(20))
             .build()
 
     @Provides
@@ -43,6 +72,24 @@ object NetworkModule {
             .client(okHttp)
             .addConverterFactory(GsonConverterFactory.create(gson)) // ⬅ 커스텀 Gson 사용
             .build()
+
+    // 🔹 Auth API
+    @Provides
+    @Singleton
+    fun provideAuthApi(retrofit: Retrofit): AuthApi =
+        retrofit.create(AuthApi::class.java)
+
+    // 🔹 BackendApi
+    @Provides @Singleton
+    fun provideBackendApi(retrofit: Retrofit): BackendApi =
+        retrofit.create(BackendApi::class.java)
+
+
+    // 🔹 Auth Repository (Interface -> Impl 바인딩)
+    @Provides
+    @Singleton
+    fun provideAuthRepository(api: AuthApi): AuthRepository =
+        AuthRepositoryImpl(api)
 
     @Provides
     @Singleton

@@ -24,14 +24,16 @@ class JwtAuthenticationFilter(
         val header = request.getHeader("Authorization")
         if (header?.startsWith("Bearer ") == true) {
             val token = header.substring(7)
-            runCatching {
-                val email = tokenProvider.getSubject(token)
-                val userDetails = userDetailsService.loadUserByUsername(email)
-                val auth = UsernamePasswordAuthenticationToken(
-                    userDetails, null, userDetails.authorities
-                )
-                auth.details = WebAuthenticationDetailsSource().buildDetails(request)
-                SecurityContextHolder.getContext().authentication = auth
+            if (tokenProvider.validateToken(token)) {
+                runCatching {
+                    val email = tokenProvider.getSubject(token)
+                    val userDetails = userDetailsService.loadUserByUsername(email)
+                    val auth = UsernamePasswordAuthenticationToken(
+                        userDetails, null, userDetails.authorities
+                    )
+                    auth.details = WebAuthenticationDetailsSource().buildDetails(request)
+                    SecurityContextHolder.getContext().authentication = auth
+                }
             }
         }
         filterChain.doFilter(request, response)

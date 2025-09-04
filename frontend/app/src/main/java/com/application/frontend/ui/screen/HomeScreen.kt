@@ -18,7 +18,6 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.viewmodel.compose.viewModel
 import com.application.frontend.R
 import com.application.frontend.model.Category
 import com.application.frontend.viewmodel.NewsViewModel
@@ -34,15 +33,18 @@ import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.ui.layout.ContentScale
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import coil.compose.AsyncImage
 import com.application.frontend.model.NewsDto
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun HomeScreen(
     navController: NavHostController,
-    vm: NewsViewModel = viewModel()
+    vm: NewsViewModel = hiltViewModel()   // ✅ Hilt 주입
 ) {
     var searchText by remember { mutableStateOf("") }
     val newsList   = vm.news

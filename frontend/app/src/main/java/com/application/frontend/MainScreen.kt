@@ -35,34 +35,45 @@ fun MainScreen() {
 
     Scaffold(
         bottomBar = {
-            NavigationBar {
-                tabs.forEach { screen ->
-                    NavigationBarItem(
-                        icon = {
-                            Icon(
-                                imageVector = screen.icon,
-                                contentDescription = screen.label
-                            )
-                        },
-                        label = { Text(screen.label) },
-                        selected = currentRoute == screen.route,
-                        onClick = {
-                            if (currentRoute != screen.route) {
-                                navController.navigate(screen.route) {
-                                    popUpTo(navController.graph.startDestinationId) {
-                                        saveState = true
+            // 🔹 회원가입/비번찾기 플로우에서는 탭바 숨김
+            val hideBottomBarRoutes = setOf(
+                Routes.SignUp, Routes.ForgotPassword, Routes.VerifyCode,
+                Routes.ResetPassword, Routes.PasswordChanged,
+                Routes.EditProfile
+            )
+
+            // 회원가입 화면일 때는 NavigationBar 숨김
+            if (currentRoute !in hideBottomBarRoutes) {
+                NavigationBar {
+                    tabs.forEach { screen ->
+                        NavigationBarItem(
+                            icon = {
+                                Icon(
+                                    imageVector = screen.icon,
+                                    contentDescription = screen.label
+                                )
+                            },
+                            label = { Text(screen.label) },
+                            selected = currentRoute == screen.route,
+                            onClick = {
+                                if (currentRoute != screen.route) {
+                                    navController.navigate(screen.route) {
+                                        popUpTo(navController.graph.startDestinationId) {
+                                            saveState = true
+                                        }
+                                        launchSingleTop = true
+                                        restoreState = true
                                     }
-                                    launchSingleTop = true
-                                    restoreState = true
                                 }
                             }
-                        }
-                    )
+                        )
+                    }
                 }
             }
         }
     ) { innerPadding ->
-        NavHost(
+
+    NavHost(
             navController = navController,
             startDestination = Screen.Home.route,
             modifier = Modifier.padding(innerPadding)
@@ -78,7 +89,32 @@ fun MainScreen() {
                 )
             }
 
-            composable(Screen.Profile.route)   { ProfileScreen() }
+            // 탭의 Profile 누르면 "로그인 전" 화면(= ProfileScreen) 노출
+            composable(Screen.Profile.route) {
+                ProfileScreen(
+                    onClickSignUp = { navController.navigate(Routes.SignUp) },
+                    onForgotPassword = { navController.navigate(Routes.ForgotPassword) },
+                    // 로그인 성공 시 아래로 내비게이트(연동 시 onLogin 콜백에서 호출)
+                    onLogin = { _,_,_ -> navController.navigate(Routes.ProfileHome) }
+                )
+            }
+
+            // 로그인 후 프로필 홈
+            composable(Routes.ProfileHome) {
+                ProfileHomeScreen(
+                    onEditProfile = {
+                        navController.navigate(Routes.EditProfile)
+                    }
+                )
+            }
+
+            // Edit Profile (풀스크린)
+            composable(Routes.EditProfile) {
+                EditProfileScreen(
+                    onBack = { navController.popBackStack() },
+                    onSaved = { navController.popBackStack() }
+                )
+            }
 
             //카테고리
             composable(
@@ -108,6 +144,69 @@ fun MainScreen() {
                     key = key,
                     name = name,
                     onBack = { navController.popBackStack() }
+                )
+            }
+
+            // 🔹 회원가입 화면
+            composable(Routes.SignUp) {
+                SignUpScreen(
+                    onBack = { navController.popBackStack() },
+                    onSignUp = { _, _, _ ->
+                        // 회원가입 성공 시 프로필 홈으로 이동
+                        navController.navigate(Routes.ProfileHome) {
+                            popUpTo(Screen.Profile.route) { inclusive = false }
+                        }
+                    },
+                    onClickLogin = { navController.popBackStack() }
+                )
+            }
+
+
+            // 🔹 Forgot Password: 이메일 입력
+            composable(Routes.ForgotPassword) {
+                ForgotPasswordScreen(
+                    onBack = { navController.popBackStack() },
+                    onSendCode = { email ->
+                        // TODO: API 요청 후 성공 시
+                        navController.navigate(Routes.VerifyCode)
+                    },
+                    onClickLogin = { navController.popBackStack() }
+                )
+            }
+
+            // 🔹 Verify Code: 4자리 코드 입력
+            composable(Routes.VerifyCode) {
+                VerifyCodeScreen(
+                    onBack = { navController.popBackStack() },
+                    onVerified = {
+                        navController.navigate(Routes.ResetPassword)
+                    }
+                )
+            }
+
+            // 🔹 Reset Password: 새 비밀번호
+            composable(Routes.ResetPassword) {
+                ResetPasswordScreen(
+                    onBack = { navController.popBackStack() },
+                    onResetDone = {
+                        navController.navigate(Routes.PasswordChanged) {
+                            popUpTo(Routes.ForgotPassword) { inclusive = true }
+                        }
+                    },
+                    onClickLogin = {
+                        // 완료 후 로그인으로 돌아가고 싶을 때
+                        navController.popBackStack(Screen.Profile.route, inclusive = false)
+                    }
+                )
+            }
+
+            // 🔹 완료 화면
+            composable(Routes.PasswordChanged) {
+                PasswordChangedScreen(
+                    onBackToLogin = {
+                        // 프로필(로그인) 화면으로
+                        navController.popBackStack(Screen.Profile.route, inclusive = false)
+                    }
                 )
             }
 

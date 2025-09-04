@@ -1,5 +1,6 @@
 package com.greencoach.config
 
+import io.jsonwebtoken.Claims
 import io.jsonwebtoken.Jwts
 import io.jsonwebtoken.SignatureAlgorithm
 import io.jsonwebtoken.security.Keys
@@ -30,4 +31,21 @@ class JwtTokenProvider(
     fun getSubject(token: String): String =
         Jwts.parserBuilder().setSigningKey(key).build()
             .parseClaimsJws(token).body.subject
+
+    fun validateToken(token: String): Boolean {
+        return try {
+            val claims = getClaims(token)
+            !claims.expiration.before(Date())
+        } catch (e: Exception) {
+            false
+        }
+    }
+
+    private fun getClaims(token: String): Claims =
+        Jwts.parserBuilder()
+            .setSigningKey(key)
+            .build()
+            .parseClaimsJws(token)
+            .body
+
 }

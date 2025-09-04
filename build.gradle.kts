@@ -34,13 +34,22 @@ dependencies {
 	implementation("org.jetbrains.kotlin:kotlin-reflect")                        // Spring/Kotlin 리플렉션
 	implementation("org.jetbrains.kotlinx:kotlinx-coroutines-reactor:1.7.3")   // 코루틴 ⇄ 리액터 변환
 	implementation("io.projectreactor.kotlin:reactor-kotlin-extensions:1.2.0")   // Reactor Kotlin 확장
+	implementation("org.springframework.boot:spring-boot-starter-security")
+	implementation("io.jsonwebtoken:jjwt-api:0.11.5")
+	implementation("org.springframework.boot:spring-boot-starter-mail") // (이메일 실제 전송 시)
 
 	compileOnly("org.projectlombok:lombok")
+
 	developmentOnly("org.springframework.boot:spring-boot-devtools")
 	runtimeOnly("com.h2database:h2")
+
 	runtimeOnly("com.mysql:mysql-connector-j")
+	runtimeOnly("io.jsonwebtoken:jjwt-impl:0.11.5")
+	runtimeOnly("io.jsonwebtoken:jjwt-jackson:0.11.5")
+
 	annotationProcessor("org.springframework.boot:spring-boot-configuration-processor")
 	annotationProcessor("org.projectlombok:lombok")
+
 	testImplementation("org.springframework.boot:spring-boot-starter-test")
 	testImplementation("org.mockito.kotlin:mockito-kotlin:4.+")
 	testImplementation("org.mockito:mockito-inline:5.+")

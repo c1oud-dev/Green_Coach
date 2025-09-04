@@ -5,6 +5,22 @@ spring:
     active: local
   codec:
     max-in-memory-size: 20MB
+  datasource:
+    url: jdbc:h2:mem:greencoach;DB_CLOSE_DELAY=-1;MODE=MySQL
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+  h2:
+    console:
+      enabled: true
+
+jwt:
+  secret: "change-this-to-a-32+bytes-long-secret-key-please!"
+  expiresMillis: 86400000
 
 server:
   port: 8080

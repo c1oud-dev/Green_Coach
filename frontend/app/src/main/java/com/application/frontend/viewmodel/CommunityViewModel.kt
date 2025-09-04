@@ -4,6 +4,7 @@ import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.application.frontend.data.community.CommunityRepository
+import com.application.frontend.data.repository.SessionToken
 import com.application.frontend.model.Comment
 import com.application.frontend.model.CreateCommentRequest
 import com.application.frontend.model.Notification
@@ -48,11 +49,14 @@ class CommunityViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(CommunityUiState())
     val uiState: StateFlow<CommunityUiState> = _uiState
 
+    private fun isLoggedInNow() = !SessionToken.token.isNullOrBlank()
+
     /** 최초 진입/재진입 시 배지 상태 동기화 */
     fun loadMeta() {
         viewModelScope.launch {
-            val meta = repository.getNotificationMeta()          // ← 백엔드 /community/notifications/meta
-            setAuthAndUnread(meta.isLoggedIn, meta.unreadCount)
+            runCatching { repository.getNotificationMeta() }          // /community/notifications/meta
+                .onSuccess { setAuthAndUnread(it.isLoggedIn, it.unreadCount) }
+                .onFailure { setAuthAndUnread(isLoggedInNow(), 0) }   // 실패해도 크래시 X
         }
     }
 
@@ -66,64 +70,70 @@ class CommunityViewModel @Inject constructor(
     }
 
     fun loadNotifications() {
+        if (!isLoggedInNow()) { setAuthAndUnread(false, uiState.value.unreadCount); return }
         viewModelScope.launch {
-            val list = repository.getNotifications()              // ← /community/notifications
-            _uiState.value = _uiState.value.copy(notifications = list)
+            runCatching { repository.getNotifications() }             // /community/notifications
+                .onSuccess { _uiState.value = _uiState.value.copy(notifications = it) }
+                .onFailure { /* 실패 시 그대로 두거나 에러 UI 플래그 추가 가능 */ }
         }
     }
 
     /** 시트 닫으면서 전체 읽음 처리 + 배지 업데이트 */
     fun markAllReadAndCloseSheet() {
         viewModelScope.launch {
-            val meta = repository.readAllNotifications()          // ← /community/notifications/read-all
-            _uiState.value = _uiState.value.copy(
-                isSheetOpen = false,
-                isLoggedIn = meta.isLoggedIn,
-                unreadCount = meta.unreadCount
-            )
+            runCatching { repository.readAllNotifications() }         // /community/notifications/read-all
+                .onSuccess {
+                    _uiState.value = _uiState.value.copy(
+                        isSheetOpen = false, isLoggedIn = it.isLoggedIn, unreadCount = it.unreadCount
+                    )
+                }
+                .onFailure { _uiState.value = _uiState.value.copy(isSheetOpen = false) }
         }
     }
 
     /** 시트는 유지한 채 전체 읽음 */
     fun markAllRead() {
         viewModelScope.launch {
-            val meta = repository.readAllNotifications()
-            _uiState.value = _uiState.value.copy(
-                // 목록의 read 플래그도 전부 true 로 동기화
-                notifications = _uiState.value.notifications.map { it.copy(read = true) },
-                isLoggedIn = meta.isLoggedIn,
-                unreadCount = meta.unreadCount
-            )
+            runCatching { repository.readAllNotifications() }
+                .onSuccess {
+                    _uiState.value = _uiState.value.copy(
+                        notifications = _uiState.value.notifications.map { n -> n.copy(read = true) },
+                        isLoggedIn = it.isLoggedIn, unreadCount = it.unreadCount
+                    )
+                }
+                .onFailure { /* no-op: UI 유지 */ }
         }
     }
 
     /** 단건 읽음 */
     fun markNotificationRead(id: Long) {
         viewModelScope.launch {
-            val meta = repository.readNotification(id)
-            _uiState.value = _uiState.value.copy(
-                notifications = _uiState.value.notifications.map {
-                    if (it.id == id) it.copy(read = true) else it
-                },
-                unreadCount = meta.unreadCount
-            )
+            runCatching { repository.readNotification(id) }
+                .onSuccess {
+                    _uiState.value = _uiState.value.copy(
+                        notifications = _uiState.value.notifications.map { n ->
+                            if (n.id == id) n.copy(read = true) else n
+                        },
+                        unreadCount = it.unreadCount
+                    )
+                }
+                .onFailure { /* no-op */ }
         }
     }
 
     /** 단건 삭제(로컬) */
     fun removeNotification(id: Long) {
         viewModelScope.launch {
-            // 1) 서버에 영구 삭제
-            val meta = repository.deleteNotification(id)
-
-            // 2) UI에서도 즉시 제거
-            val wasUnread = _uiState.value.notifications.any { it.id == id && !it.read }
-            _uiState.value = _uiState.value.copy(
-                notifications = _uiState.value.notifications.filterNot { it.id == id },
-                // 서버 메타가 오면 그 값을 신뢰, 없으면 로컬 계산값 사용
-                unreadCount = meta.unreadCount.takeIf { it >= 0 }
-                    ?: (_uiState.value.unreadCount - if (wasUnread) 1 else 0).coerceAtLeast(0)
-            )
+            runCatching { repository.deleteNotification(id) }
+                .onSuccess { meta ->
+                    val wasUnread = _uiState.value.notifications.any { it.id == id && !it.read }
+                    _uiState.value = _uiState.value.copy(
+                        notifications = _uiState.value.notifications.filterNot { it.id == id },
+                        unreadCount = meta.unreadCount.takeIf { it >= 0 }
+                            ?: (_uiState.value.unreadCount - if (wasUnread) 1 else 0).coerceAtLeast(0)
+                    )
+                }
+                .onFailure { /* no-op: 실패 시 목록 유지 */ }
         }
     }
 
@@ -293,16 +303,18 @@ class CommunityViewModel @Inject constructor(
     // ★ 댓글 로드(실서버 연동)
     fun loadComments(postId: String) {
         viewModelScope.launch {
-            val raw = repository.getComments(postId)
-            val list = markOwnership(raw)              // ★ 소유자 플래그 채우기
-            val count = totalComments(list)
-
-            _uiState.value = _uiState.value.copy(
-                activeComments = list,
-                feed = _uiState.value.feed.map { p ->
-                    if (p.id == postId) p.copy(commentCount = count) else p
+            runCatching { repository.getComments(postId) }
+                .onSuccess { raw ->
+                    val list = markOwnership(raw)
+                    val count = /* ... */ list.sumOf { 1 + it.replies.size } // 기존 totalComments 사용
+                    _uiState.value = _uiState.value.copy(
+                        activeComments = list,
+                        feed = _uiState.value.feed.map { p -> if (p.id == postId) p.copy(commentCount = count) else p }
+                    )
                 }
-            )
+                .onFailure {
+                    _uiState.value = _uiState.value.copy(activeComments = emptyList())
+                }
         }
     }
 

@@ -17,6 +17,7 @@ import com.application.frontend.navigation.Routes
 import com.application.frontend.navigation.Screen
 import com.application.frontend.ui.screen.*
 import com.application.frontend.viewmodel.CommunityViewModel
+import com.application.frontend.viewmodel.ScanViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -24,6 +25,12 @@ fun MainScreen() {
     val navController = rememberNavController()
     val navBackStack by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStack?.destination?.route
+
+    // ✅ Scan 결과를 Forest에 반영하기 위해 공유 ViewModel 구독
+    val scanVm: ScanViewModel = hiltViewModel()
+    val scanUi by scanVm.uiState.collectAsState()
+    // shots 계산 방식: 확정된 스캔 수(confirmed) 또는 단순히 히스토리 개수
+    val shots = scanUi.scanHistory.count { it.confirmed } // 또는: scanUi.scanHistory.size
 
     val tabs = listOf(
         Screen.Home,
@@ -79,7 +86,11 @@ fun MainScreen() {
             modifier = Modifier.padding(innerPadding)
         ) {
             composable(Screen.Home.route)      { HomeScreen(navController) }
-            composable(Screen.Forest.route)    { ForestScreen() }
+            composable(Screen.Forest.route) {
+                // ✅ Scan 결과 누적치(leaf 촬영 횟수)를 Forest에 넘김
+                ForestScreen(shots = shots)
+            }
+
             composable(Screen.Scan.route)      { ScanScreen() }
             composable(Screen.Community.route) {
                 val vm: CommunityViewModel = hiltViewModel()

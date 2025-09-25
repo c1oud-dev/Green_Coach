@@ -1,0 +1,13 @@
+glass
+paper
+plastic
+pet
+can
+styrofoam
+clothesTextiles
+BigAppliances
+vinyl
+scrapMetal
+SmallAppliances
+Battery
+Furniture

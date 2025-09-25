@@ -23,6 +23,7 @@ configurations {
 
 repositories {
 	mavenCentral()
+    google()
 }
 
 dependencies {
@@ -37,6 +38,12 @@ dependencies {
 	implementation("org.springframework.boot:spring-boot-starter-security")
 	implementation("io.jsonwebtoken:jjwt-api:0.11.5")
 	implementation("org.springframework.boot:spring-boot-starter-mail") // (이메일 실제 전송 시)
+    // --- AI Runtime ---
+    implementation("com.microsoft.onnxruntime:onnxruntime:1.20.0")   // ONNX Runtime
+    implementation("org.tensorflow:tensorflow-lite:2.12.0")
+    implementation("org.tensorflow:tensorflow-lite-api:2.12.0")// TensorFlow Lite
+    implementation("org.tensorflow:tensorflow-lite-support:0.5.0")
+
 
 	compileOnly("org.projectlombok:lombok")
 

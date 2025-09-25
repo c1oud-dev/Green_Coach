@@ -2,7 +2,7 @@ spring:
   application:
     name: greencoach
   profiles:
-    active: local
+    active: onnx   # 또는 tflite
   codec:
     max-in-memory-size: 20MB
   datasource:

@@ -37,16 +37,21 @@ class SecurityConfig(
                     "/auth/**",
                     "/actuator/health"
                 ).permitAll()
-                    .requestMatchers(org.springframework.http.HttpMethod.GET,
-                        "/api/news/**",
-                        "/api/co2/**",
-                        "/api/categories/**",
-                        "/api/subcategories/**",
-                        "/images/**"            // (정적 이미지 사용 시)
-                    ).permitAll()
-                    .anyRequest().authenticated()
-            }
+                // ✅ 스캔 업로드는 인증 없이 허용 (모든 HTTP 메서드)
+                it.requestMatchers("/api/scan/**").permitAll()
 
+                // GET 공개 엔드포인트들
+                it.requestMatchers(
+                    org.springframework.http.HttpMethod.GET,
+                    "/api/news/**",
+                    "/api/co2/**",
+                    "/api/categories/**",
+                    "/api/subcategories/**",
+                    "/images/**"
+                ).permitAll()
+
+                it.anyRequest().authenticated()
+            }
             .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter::class.java)
         return http.build()
     }

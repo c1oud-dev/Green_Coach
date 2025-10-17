@@ -17,6 +17,7 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
@@ -33,6 +34,12 @@ class CategoryViewModel @Inject constructor(
 
     private val _subs = MutableStateFlow<List<Category>>(emptyList())
     val subs: StateFlow<List<Category>> = _subs
+
+    private val defaultHashtags = listOf("#종이팩", "#포장비닐", "#플라스틱용기", "#투명페트병", "#아이스팩")
+    private val _hashtags = MutableStateFlow(defaultHashtags)
+    val hashtags: StateFlow<List<String>> = _hashtags
+
+    private val _searchCounts = MutableStateFlow<Map<String, Int>>(emptyMap())
 
     // 이름 → 로컬 아이콘 매핑(아이콘은 프론트 리소스 사용)
     private val topIconMap = mapOf(
@@ -92,6 +99,39 @@ class CategoryViewModel @Inject constructor(
             } catch (e: Exception) {
                 null
             }
+        }?.also { result ->
+            recordSearchKeyword(result.name)
+        }
+    }
+
+    private fun recordSearchKeyword(name: String) {
+        val normalized = name.trim().removePrefix("#").replace("\\s+".toRegex(), "")
+        if (normalized.isEmpty()) return
+
+        _searchCounts.update { current ->
+            val updated = current.toMutableMap()
+            updated[normalized] = (updated[normalized] ?: 0) + 1
+            updated
+        }
+
+        val counts = _searchCounts.value
+        if (counts.isEmpty()) {
+            _hashtags.value = defaultHashtags
+            return
+        }
+
+        val trending = counts
+            .entries
+            .sortedWith(compareByDescending<Map.Entry<String, Int>> { it.value }.thenBy { it.key })
+            .map { "#${it.key}" }
+            .take(defaultHashtags.size)
+
+        if (trending.size >= defaultHashtags.size) {
+            _hashtags.value = trending
+        } else {
+            val fallback = defaultHashtags.filterNot { it in trending }
+            _hashtags.value = trending + fallback.take(defaultHashtags.size - trending.size)
+
         }
     }
 }

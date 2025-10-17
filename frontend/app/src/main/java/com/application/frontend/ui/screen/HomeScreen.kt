@@ -63,10 +63,10 @@ fun HomeScreen(
 
     // ▼ 서버에서 가져온 최상위 카테고리 사용
     val categories by catVm.top.collectAsState()
+    val hashtags by catVm.hashtags.collectAsState()
     LaunchedEffect(Unit) { catVm.loadTop() }
 
     val newsList   = vm.news
-    val hashtags   = listOf("#종이팩", "#포장비닐", "#플라스틱용기", "#투명페트병", "#아이스팩")
 
     LazyColumn(
         modifier = Modifier

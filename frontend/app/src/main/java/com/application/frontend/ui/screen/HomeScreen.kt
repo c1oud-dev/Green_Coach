@@ -43,6 +43,7 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CardDefaults
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.PlatformTextStyle
 import androidx.compose.ui.text.style.LineHeightStyle
 import com.application.frontend.navigation.Routes
@@ -67,6 +68,7 @@ fun HomeScreen(
     LaunchedEffect(Unit) { catVm.loadTop() }
 
     val newsList   = vm.news
+    val uriHandler = LocalUriHandler.current
 
     LazyColumn(
         modifier = Modifier
@@ -282,15 +284,12 @@ fun HomeScreen(
         // 뉴스
         item {
             Spacer(Modifier.height(15.dp))
-            Row(
-                Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 20.dp),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Text("News", fontSize = 20.sp, fontWeight = FontWeight.Bold)
-                Text("Learn more", fontSize = 12.sp, color = Color.Gray)
-            }
+            Text(
+                text = "News",
+                fontSize = 20.sp,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(horizontal = 20.dp)
+            )
         }
 
         item {
@@ -302,9 +301,11 @@ fun HomeScreen(
                 // 중복 URL을 제거한 뒤 순회( 1) link 로 중복 제거, 2) NewsDto 타입 명시)
                 items(newsList.distinctBy { it.link }) { item: NewsDto ->  // :contentReference[oaicite:3]{index=3}
                     Card(
+                        onClick = { if (item.link.isNotBlank()) uriHandler.openUri(item.link) },
                         shape = RoundedCornerShape(8.dp),
                         modifier = Modifier.width(200.dp),
-                        colors = CardDefaults.cardColors(containerColor = Color.White) // ← 배경 흰색
+                        colors = CardDefaults.cardColors(containerColor = Color.White), // ← 배경 흰색
+                        enabled = item.link.isNotBlank()
                     ) {
                         Column {
                             // Coil AsyncImage로 실제 URL 로드, 로딩/에러 시 placeholder 표시

@@ -1,11 +1,30 @@
 package com.greencoach.service
 
+import com.greencoach.model.SearchResultDto
 import com.greencoach.model.StepSectionDto
 import com.greencoach.model.SubCategoryDetailDto
 import org.springframework.stereotype.Service
 
 @Service
 class SubCategoryDetailService {
+
+    // 간단한 별칭/키워드 매핑 (확장 가능)
+private val aliasToKey: Map<String, String> = mapOf(
+        "투명 페트병" to "pet_water",
+        "페트병"     to "pet_water",
+        "생수병"     to "pet_water"
+    )
+
+fun search(keyword: String): SearchResultDto? {
+        val q = keyword.trim().lowercase()
+        // 완전/부분 일치 허용
+        val matchedKey = aliasToKey.entries.firstOrNull {
+                val k = it.key.lowercase()
+                k == q || k.contains(q) || q.contains(k)
+            }?.value ?: return null
+        val detail = getDetail(matchedKey) ?: return null
+        return SearchResultDto(key = detail.key, name = detail.name)
+    }
     fun getDetail(key: String): SubCategoryDetailDto? = when (key) {
         "pet_water" -> SubCategoryDetailDto(
             key = key, name = "투명 페트병",

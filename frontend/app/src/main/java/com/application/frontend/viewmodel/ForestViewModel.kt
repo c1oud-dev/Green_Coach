@@ -17,6 +17,7 @@ data class ForestUiState(
     val stage: ForestStage = ForestStage.SEED,
     val progressPercent: Int = 0,
     val shots: Int = 0,
+    val totalLeafs: Int = 0,
     val world: Co2Snapshot? = null,
     val korea: Co2Snapshot? = null,
     val isLoading: Boolean = true,
@@ -33,11 +34,17 @@ class ForestViewModel @Inject constructor (
     private val _ui = MutableStateFlow(ForestUiState())
     val ui: StateFlow<ForestUiState> = _ui.asStateFlow()
 
-    fun init(shotsFromScan: Int) {
+    fun init(shotsFromScan: Int, totalLeafs: Int) {
         // 성장 단계/프로그레스 계산
-        val stage = ForestStage.fromShots(shotsFromScan)
-        val percent = (shotsFromScan.coerceAtMost(31) * 100) / 31 // 31회 ≈ 100% 기준
-        _ui.value = _ui.value.copy(stage = stage, progressPercent = percent, shots = shotsFromScan)
+        val stage = ForestStage.fromLeafs(totalLeafs)
+        val maxLeafs = 100
+        val percent = (totalLeafs.coerceAtMost(maxLeafs) * 100) / maxLeafs
+        _ui.value = _ui.value.copy(
+            stage = stage,
+            progressPercent = percent,
+            shots = shotsFromScan,
+            totalLeafs = totalLeafs
+        )
 
         // CO2 데이터 불러오기
         viewModelScope.launch(io) {

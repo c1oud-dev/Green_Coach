@@ -96,13 +96,23 @@ class ScanViewModel @Inject constructor(
     }
 
     private fun calculateLeafPoints(result: ScanResultDto): Int {
-        // 카테고리별 포인트 계산 로직
-        return when (result.category.lowercase()) {
-            "plastic bottle", "plastic" -> 3
-            "can" -> 2
-            "paper" -> 2
-            "glass" -> 2
-            else -> 1
+        // 한글 기준: subCategory가 있으면 우선, 없으면 category 사용
+        val key = (result.subCategory ?: result.category).trim().lowercase()
+        return when (key) {
+            "투명 페트병" -> 2
+            "일반 플라스틱" -> 2
+            "비닐류" -> 1
+            "스티로폼" -> 1
+            "캔류" -> 2
+            "고철류" -> 1
+            "유리병" -> 2
+            "종이류" -> 1
+            "옷/섬유류" -> 3
+            "대형 전자제품" -> 5
+            "소형 전자제품" -> 3
+            "전지류" -> 3
+            "가구" -> 5
+            else -> 0
         }
     }
 }

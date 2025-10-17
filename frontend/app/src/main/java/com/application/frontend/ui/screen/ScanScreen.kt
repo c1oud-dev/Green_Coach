@@ -6,6 +6,7 @@ import android.net.Uri
 import android.provider.MediaStore
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -14,12 +15,12 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -27,6 +28,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.application.frontend.R
 import com.application.frontend.viewmodel.ScanViewModel
@@ -163,42 +165,54 @@ private fun ScanMainScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .background(greenTeal)
+                .background(Color.White) // ✅ 화면 배경 흰색
         ) {
             // 상단 타이틀
-            Box(
+            Surface(
+                color = greenTeal,
+                shape = RoundedCornerShape(
+                    topStart = 0.dp,
+                    topEnd = 0.dp,
+                    bottomStart = 25.dp,
+                    bottomEnd = 24.dp
+                ),
+                shadowElevation = 0.dp,
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .height(200.dp),
-                contentAlignment = Alignment.Center
+                    .fillMaxWidth()          // ⬅️ 좌우 여백 없이 전체 폭
             ) {
-                Text(
-                    text = "Scan Items",
-                    fontSize = 28.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.Black
-                )
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(180.dp)
+                        .statusBarsPadding(), // ⬅️ 내용만 상태바 아래로 내림 (배경은 그대로)
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "Scan Items",
+                        fontSize = 30.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.Black
+                    )
+                }
             }
 
-            // 하단 흰색 영역
+            // 본문 영역
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(
-                        Color.White,
-                        RoundedCornerShape(topStart = 0.dp, topEnd = 0.dp)
-                    )
-                    .padding(16.dp)
+                    .padding(horizontal = 16.dp)
             ) {
-                Spacer(modifier = Modifier.height(20.dp))
+                Spacer(modifier = Modifier.height(40.dp))
 
                 // 스캔 카드
                 Card(
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .height(200.dp)
+                        .fillMaxWidth(0.85f)                 // 가로폭
+                        .align(Alignment.CenterHorizontally) // 가운데 정렬
+                        .height(240.dp)
                         .clickable { onScanClick() },
                     shape = RoundedCornerShape(20.dp),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
                     colors = CardDefaults.cardColors(containerColor = greenTeal)
                 ) {
                     Column(
@@ -208,9 +222,9 @@ private fun ScanMainScreen(
                     ) {
                         // 스캔 아이콘 (카메라 아이콘)
                         Icon(
-                            painter = painterResource(id = R.drawable.ic_camera_scan), // 스캔 아이콘 리소스 필요
+                            painter = painterResource(id = R.drawable.ic_camera_scan),
                             contentDescription = "Scan",
-                            modifier = Modifier.size(64.dp),
+                            modifier = Modifier.size(70.dp),
                             tint = Color.Black.copy(alpha = 0.7f)
                         )
 
@@ -224,8 +238,8 @@ private fun ScanMainScreen(
                             ),
                             shape = RoundedCornerShape(25.dp),
                             modifier = Modifier
-                                .width(220.dp)
-                                .height(50.dp)
+                                .wrapContentWidth()
+                                .height(48.dp)
                         ) {
                             Text(
                                 text = "Scan your scrap item",
@@ -237,35 +251,56 @@ private fun ScanMainScreen(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(40.dp))
+                Spacer(modifier = Modifier.height(30.dp))
 
                 // Recent scan 섹션
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp), // 화면 좌우와 여백
+                    shape = RoundedCornerShape(16.dp),
+                    border = BorderStroke(1.dp, Color(0xFFE6E6E6)), // ✅ 얇은 회색 테두리
+                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
                 ) {
-                    Text(
-                        text = "Recent scan",
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = Color.Black
-                    )
-                    Text(
-                        text = "View all",
-                        fontSize = 14.sp,
-                        color = Color.Gray,
-                        modifier = Modifier.clickable { onRecentScanClick() }
-                    )
-                }
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        //헤더
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "Recent scan",
+                                fontSize = 18.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = Color.Black
+                            )
+                            OutlinedButton(
+                                onClick = onRecentScanClick,
+                                shape = RoundedCornerShape(12.dp),
+                                border = BorderStroke(1.dp, Color(0xFFE0E0E0)),
+                                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
+                                modifier = Modifier.height(28.dp)
+                            ) {
+                                Text(
+                                    text = "View all",
+                                    fontSize = 12.sp,
+                                    color = Color(0xFF757575)
+                                )
+                            }
+                        }
 
-                Spacer(modifier = Modifier.height(16.dp))
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Divider(color = Color(0x1A000000), thickness = 1.dp) // 헤더 하단 얇은 선
 
-                // Recent scan 리스트 (처음 2개만)
-                val recentScans = uiState.scanHistory.take(2)
-                recentScans.forEach { scan ->
-                    ScanHistoryItem(scan = scan)
-                    Spacer(modifier = Modifier.height(12.dp))
+                        // Recent scan 리스트 (처음 2개만)
+                        val recentScans = uiState.scanHistory.take(2)
+                        recentScans.forEach { scan ->
+                            ScanHistoryItem(scan = scan)
+                            Spacer(modifier = Modifier.height(10.dp))
+                        }
+                    }
                 }
             }
         }
@@ -333,76 +368,86 @@ private fun ScanHistoryItem(scan: ScanHistoryDto) {
         Column(
             horizontalAlignment = Alignment.End
         ) {
-            Text(
-                text = "${scan.leafPoints} leafs",
-                fontSize = 16.sp, // 14sp → 16sp
-                fontWeight = FontWeight.SemiBold, // Medium → SemiBold
-                color = Color.Black
-            )
-            Spacer(modifier = Modifier.height(4.dp))
             Box(
                 modifier = Modifier
                     .background(
-                        Color(0xFF4CAF50).copy(alpha = 0.15f), // 0.2f → 0.15f (더 연하게)
-                        RoundedCornerShape(8.dp) // 12dp → 8dp
+                        Color(0xFF4CAF50).copy(alpha = 0.12f), // 연한 그린 배경
+                        RoundedCornerShape(999.dp)             // pill 형태
                     )
-                    .padding(horizontal = 6.dp, vertical = 2.dp) // 8dp,4dp → 6dp,2dp
+                    .padding(horizontal = 10.dp, vertical = 4.dp)
             ) {
                 Text(
-                    text = "confirmed",
-                    fontSize = 10.sp,
-                    color = Color(0xFF4CAF50),
-                    fontWeight = FontWeight.Medium
+                    text = "${scan.leafPoints} leafs",
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = Color(0xFF2E7D32)                 // 진한 그린 텍스트
                 )
             }
         }
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun RecentScansModal(
     scans: List<ScanHistoryDto>,
     onClose: () -> Unit
 ) {
-    ModalBottomSheet(
-        onDismissRequest = onClose,
-        containerColor = Color.White,
-        modifier = Modifier.fillMaxHeight(0.9f)
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(16.dp)
+    val config = LocalConfiguration.current
+    val screenWidth  = config.screenWidthDp.dp
+    val screenHeight = config.screenHeightDp.dp
+    val targetWidth = screenWidth * 0.92f     // 📏 폭 ≈ 92%
+    val targetMaxHeight = screenHeight * 0.72f // 📏 최대 높이 ≈ 72%
+
+    Dialog(onDismissRequest = onClose) {
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
         ) {
-            // 헤더
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+            Surface(
+                shape = RoundedCornerShape(20.dp),
+                tonalElevation = 3.dp,
+                shadowElevation = 6.dp,
+                color = Color.White,
+                modifier = Modifier
+                    .width(targetWidth)
+                    .heightIn(max = targetMaxHeight)
             ) {
-                Text(
-                    text = "Recent scan",
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = Color.Black
-                )
-                IconButton(onClick = onClose) {
-                    Icon(
-                        imageVector = Icons.Default.Close,
-                        contentDescription = "Close",
-                        tint = Color.Gray
-                    )
-                }
-            }
+                Column(modifier = Modifier.padding(16.dp)) {
 
-            Spacer(modifier = Modifier.height(16.dp))
+                    // 헤더
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "Recent scan",
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = Color.Black
+                        )
+                        OutlinedButton(
+                            onClick = onClose,
+                            shape = RoundedCornerShape(12.dp),
+                            border = BorderStroke(1.dp, Color(0xFFE0E0E0)),
+                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
+                            modifier = Modifier.height(28.dp)
+                        ) {
+                            Text("Close", fontSize = 12.sp, color = Color(0xFF757575))
+                        }
+                    }
 
-            // 전체 리스트
-            LazyColumn {
-                items(scans) { scan ->
-                    ScanHistoryItem(scan = scan)
                     Spacer(modifier = Modifier.height(12.dp))
+                    Divider(color = Color(0x1A000000), thickness = 1.dp)
+
+                    Spacer(modifier = Modifier.height(8.dp))
+                    LazyColumn {
+                        items(scans) { scan ->
+                            ScanHistoryItem(scan = scan)
+                            Spacer(modifier = Modifier.height(12.dp))
+                            Divider(color = Color(0xFFEAEAEA), thickness = 1.dp)
+                        }
+                    }
                 }
             }
         }
@@ -585,9 +630,9 @@ private fun ScanScreenPreview() {
     val mockHistory = listOf(
         ScanHistoryDto(1, "Plastic", "17 Sep 2023 11:21 AM", 10),
         ScanHistoryDto(2, "Can", "17 Sep 2023 10:34 AM", 3),
-        ScanHistoryDto(3, "Cashback from purchase", "16 Sep 2023 16:08 PM", 175),
-        ScanHistoryDto(4, "Transfer to card", "16 Sep 2023 11:21 AM", 9000),
-        ScanHistoryDto(5, "Transfer to card", "15 Sep 2023 11:21 AM", 9267)
+        ScanHistoryDto(3, "data1", "16 Sep 2023 16:08 PM", 1),
+        ScanHistoryDto(4, "data2", "16 Sep 2023 11:21 AM", 9),
+        ScanHistoryDto(5, "data3", "15 Sep 2023 11:21 AM", 7)
     )
 
     ScanMainScreen(

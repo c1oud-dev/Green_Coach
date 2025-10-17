@@ -15,12 +15,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.application.frontend.R
@@ -48,6 +50,8 @@ fun ProfileScreen(
     val uiState by viewModel.uiState.collectAsState()
     val snackHost = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
+
+
 
     // 🔹 추가: 성공 시 상위(onLogin) 콜백 호출 → 기존 Nav 흐름 재사용
     LaunchedEffect(uiState) {

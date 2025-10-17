@@ -26,6 +26,9 @@ data class CommunityUiState(
     val selectedMedia: List<Uri> = emptyList(),   // 이미지/동영상 URI
     val selectedGifUrl: String? = null,            // 선택된 GIF (있으면 미디어에 포함)
 
+    // 검색어 상태
+    val searchQuery: String = "",
+
     // ★ 댓글 시트 관련 상태
     val isCommentSheetOpen: Boolean = false,
     val activePostIdForComments: String? = null,
@@ -44,7 +47,10 @@ class CommunityViewModel @Inject constructor(
 ) : ViewModel() {
 
     private val currentUserId = "Green Coach"    // TODO: 로그인 붙을 때 실제 사용자 id로 대체(로그인 전 임시 표시명 고정)
-    private val currentUserIdLong = 0L     // ★ 추가: 서버의 authorId(0)와 동일
+    private val currentUserIdLong = 0L     // 서버의 authorId(0)와 동일
+
+
+    private var fullFeed: List<Post> = emptyList() // 검색을 위한 “원본 피드”
 
     private val _uiState = MutableStateFlow(CommunityUiState())
     val uiState: StateFlow<CommunityUiState> = _uiState
@@ -153,6 +159,7 @@ class CommunityViewModel @Inject constructor(
         // 소개 게시글을 feed 맨 앞에 넣어둔다
         val intro = getIntroPost()
         _uiState.value = _uiState.value.copy(feed = listOf(intro))
+        fullFeed = listOf(intro)    // 검색 원본에도 저장
     }
 
     // 앱 첫 화면에 항상 노출될 '소개 게시글'
@@ -187,14 +194,16 @@ class CommunityViewModel @Inject constructor(
             authorId = currentUserId          // ⬅ 내 글 표시
         )
         if (newPost.content.isNotEmpty()) {
-            val currentFeed = _uiState.value.feed
-            val intro = currentFeed.lastOrNull() // intro는 항상 마지막
-            val withoutIntro = if (intro?.id == "intro-post") currentFeed.dropLast(1) else currentFeed
+            // ▼ 원본 피드 갱신 (intro는 항상 마지막에 유지)
+            val introInFull = fullFeed.lastOrNull()
+            val fullWithoutIntro = if (introInFull?.id == "intro-post") fullFeed.dropLast(1) else fullFeed
+            fullFeed = listOf(newPost) + fullWithoutIntro + listOfNotNull(introInFull)
 
-            _uiState.value = _uiState.value.copy(
-                feed = listOf(newPost) + withoutIntro + listOfNotNull(intro),
-                composerText = ""
-            )
+            // ▼ 현재 검색어 기준으로 화면 목록 재계산
+            applySearch(_uiState.value.searchQuery)
+
+            // 입력 초기화
+            _uiState.value = _uiState.value.copy(composerText = "")
         }
     }
 
@@ -210,9 +219,10 @@ class CommunityViewModel @Inject constructor(
     }
 
     fun deletePost(postId: String) {
-        val cur = _uiState.value.feed
-        val after = cur.filterNot { it.id == postId }
-        _uiState.value = _uiState.value.copy(feed = after)
+        // ▼ 원본에서 제거
+        fullFeed = fullFeed.filterNot { it.id == postId }
+        // ▼ 현재 검색어 기준으로 화면 목록 재계산
+        applySearch(_uiState.value.searchQuery)
     }
 
     fun reportPost(postId: String) {
@@ -454,6 +464,20 @@ class CommunityViewModel @Inject constructor(
             )
         }
         return list.map(::mark)
+    }
+
+    // ▼ 검색어 변경 + 즉시 필터링
+    fun setSearchQuery(query: String) {
+        _uiState.value = _uiState.value.copy(searchQuery = query)
+        applySearch(query)
+    }
+
+    // ▼ 내부 헬퍼: 게시글 content에 query가 포함된 경우만 노출(대소문자 무시)
+    private fun applySearch(query: String) {
+        val base = fullFeed
+        val filtered = if (query.isBlank()) base
+        else base.filter { it.content.contains(query, ignoreCase = true) }
+        _uiState.value = _uiState.value.copy(feed = filtered)
     }
 
 }

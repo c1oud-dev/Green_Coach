@@ -1,21 +1,16 @@
 package com.application.frontend.navigation
 
 import android.net.Uri
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Nature
-import androidx.compose.material.icons.filled.CameraAlt
-import androidx.compose.material.icons.filled.People
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.annotation.DrawableRes
+import com.application.frontend.R
 
 // 🔹 바텀 탭
-sealed class Screen(val route: String, val icon: ImageVector, val label: String) {
-    object Home      : Screen("home",      Icons.Filled.Home,       "Home")
-    object Forest    : Screen("forest",    Icons.Filled.Nature,     "Forest")
-    object Scan      : Screen("scan",      Icons.Filled.CameraAlt,  "")
-    object Community : Screen("community", Icons.Filled.People,     "Community")
-    object Profile   : Screen("profile",   Icons.Filled.Person,     "Profile")
+sealed class Screen(val route: String, @DrawableRes val iconRes: Int, val label: String) {
+    object Home      : Screen("home",      R.drawable.ic_home,       "Home")
+    object Forest    : Screen("forest",    R.drawable.ic_forest,     "Forest")
+    object Scan      : Screen("scan",      R.drawable.ic_scan,       "")
+    object Community : Screen("community", R.drawable.ic_community,  "Community")
+    object Profile   : Screen("profile",   R.drawable.ic_profile,    "Profile")
 }
 
 // 🔹 일반 화면(상세/카테고리 등) 라우트 모음

@@ -80,11 +80,11 @@ class ScanRepositoryImpl @Inject constructor(
         return listOf(
             ScanHistoryDto(1, "Plastic", "17 Sep 2023 11:21 AM", 10),
             ScanHistoryDto(2, "Can", "17 Sep 2023 10:34 AM", 3),
-            ScanHistoryDto(3, "Cashback from purchase", "16 Sep 2023 16:08 PM", 175),
-            ScanHistoryDto(4, "Transfer to card", "16 Sep 2023 11:21 AM", 9000),
-            ScanHistoryDto(5, "Transfer to card", "15 Sep 2023 11:21 AM", 9267),
-            ScanHistoryDto(6, "Cashback from purchase", "14 Sep 2023 18:59 AM", 321),
-            ScanHistoryDto(7, "Transfer to card", "13 Sep 2023 10:21 AM", 70)
+            ScanHistoryDto(3, "Cashback from purchase", "16 Sep 2023 16:08 PM", 1),
+            ScanHistoryDto(4, "Transfer to card", "16 Sep 2023 11:21 AM", 1),
+            ScanHistoryDto(5, "Transfer to card", "15 Sep 2023 11:21 AM", 2),
+            ScanHistoryDto(6, "Cashback from purchase", "14 Sep 2023 18:59 AM", 3),
+            ScanHistoryDto(7, "Transfer to card", "13 Sep 2023 10:21 AM", 1)
         )
     }
 
@@ -94,12 +94,22 @@ class ScanRepositoryImpl @Inject constructor(
     }
 
     private fun calculateLeafPoints(result: ScanResultDto): Int {
-        return when (result.category.lowercase()) {
-            "plastic bottle", "plastic" -> 10
-            "can" -> 3
-            "paper" -> 5
-            "glass" -> 8
-            else -> 1
+        val key = (result.subCategory ?: result.category).trim().lowercase()
+        return when (key) {
+            "투명 페트병" -> 2
+            "일반 플라스틱" -> 2
+            "비닐류" -> 1
+            "스티로폼" -> 1
+            "캔류" -> 2
+            "고철류" -> 1
+            "유리병" -> 2
+            "종이류" -> 1
+            "옷/섬유류" -> 3
+            "대형 전자제품" -> 5
+            "소형 전자제품" -> 3
+            "전지류" -> 3
+            "가구" -> 5
+            else -> 0
         }
     }
 }

@@ -51,7 +51,7 @@ class CategoryViewModel @Inject constructor(
         "고철류"     to R.drawable.ic_steel,
         "유리병"     to R.drawable.ic_glass,
         "종이류"     to R.drawable.ic_paper,
-        "옷/섬유류"  to R.drawable.ic_cloth,
+        "섬유류"  to R.drawable.ic_cloth,
         "소형 전자제품" to R.drawable.ic_small,
         "대형 전자제품" to R.drawable.ic_large,
         "가구"       to R.drawable.ic_furniture,

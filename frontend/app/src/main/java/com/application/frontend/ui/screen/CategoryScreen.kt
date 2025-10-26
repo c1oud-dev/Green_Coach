@@ -266,7 +266,7 @@ fun CategoryScreen(
                             verticalArrangement = Arrangement.spacedBy(16.dp),
                             horizontalArrangement = Arrangement.spacedBy(16.dp),
                             content = {
-                                items(subCategories.take(4)) { sub ->
+                                items(subCategories.take(6)) { sub ->
                                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                         val context = LocalContext.current
                                         val safeIconRes = remember(sub.iconRes) {

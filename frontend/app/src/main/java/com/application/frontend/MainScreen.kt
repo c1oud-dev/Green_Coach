@@ -258,7 +258,7 @@ fun MainScreen() {
                 ForestScreen(shots = shots, leafs = totalLeafs)
             }
 
-            composable(Screen.Scan.route)      { ScanScreen() }
+        composable(Screen.Scan.route)      { ScanScreen(navController) }
             composable(Screen.Community.route) {
                 val vm: CommunityViewModel = hiltViewModel()
                 CommunityScreen(

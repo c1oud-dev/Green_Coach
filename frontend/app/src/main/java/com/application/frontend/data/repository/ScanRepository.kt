@@ -28,12 +28,7 @@ class ScanRepositoryImpl @Inject constructor(
     }
 
     override suspend fun getScanHistory(): List<ScanHistoryDto> {
-        return try {
-            scanApi.getScanHistory()
-        } catch (e: Exception) {
-            // 네트워크 에러 시 Mock 데이터 반환 (개발 중)
-            createMockHistory()
-        }
+        return scanApi.getScanHistory()
     }
 
     override suspend fun saveScanResult(result: ScanResultDto): ScanHistoryDto {
@@ -73,18 +68,6 @@ class ScanRepositoryImpl @Inject constructor(
                 "뚜껑을 분리하세요",
                 "내용물을 완전히 비우세요"
             )
-        )
-    }
-
-    private fun createMockHistory(): List<ScanHistoryDto> {
-        return listOf(
-            ScanHistoryDto(1, "Plastic", "17 Sep 2023 11:21 AM", 10),
-            ScanHistoryDto(2, "Can", "17 Sep 2023 10:34 AM", 3),
-            ScanHistoryDto(3, "Cashback from purchase", "16 Sep 2023 16:08 PM", 1),
-            ScanHistoryDto(4, "Transfer to card", "16 Sep 2023 11:21 AM", 1),
-            ScanHistoryDto(5, "Transfer to card", "15 Sep 2023 11:21 AM", 2),
-            ScanHistoryDto(6, "Cashback from purchase", "14 Sep 2023 18:59 AM", 3),
-            ScanHistoryDto(7, "Transfer to card", "13 Sep 2023 10:21 AM", 1)
         )
     }
 

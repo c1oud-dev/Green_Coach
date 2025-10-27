@@ -3,6 +3,7 @@ package com.application.frontend.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.application.frontend.data.repository.ScanRepository
+import com.application.frontend.data.repository.SessionToken
 import com.application.frontend.ui.screen.ScanResultDto
 import com.application.frontend.ui.screen.ScanUiState
 import com.application.frontend.ui.screen.ScanHistoryDto
@@ -23,6 +24,7 @@ class ScanViewModel @Inject constructor(
     val uiState: StateFlow<ScanUiState> = _uiState.asStateFlow()
 
     init {
+        refreshAuthState()
         loadScanHistory()
     }
 
@@ -37,7 +39,8 @@ class ScanViewModel @Inject constructor(
                 // 2) 결과 상태 반영
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
-                    latestResult = result
+                    latestResult = result,
+                    isLoggedIn = isLoggedIn()
                 )
 
                 // 3) 히스토리 서버 저장 시도 (실패해도 UI는 계속)
@@ -51,7 +54,8 @@ class ScanViewModel @Inject constructor(
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
-                    error = e.message ?: "이미지 분석에 실패했습니다."
+                    error = e.message ?: "이미지 분석에 실패했습니다.",
+                    isLoggedIn = isLoggedIn()
                 )
             }
         }
@@ -68,11 +72,28 @@ class ScanViewModel @Inject constructor(
 
     private fun loadScanHistory() {
         viewModelScope.launch {
+            val loggedIn = isLoggedIn()
+            if (!loggedIn) {
+                _uiState.value = _uiState.value.copy(
+                    isLoggedIn = false,
+                    scanHistory = emptyList(),
+                    error = null
+                )
+                return@launch
+            }
             try {
                 val history = scanRepository.getScanHistory()
-                _uiState.value = _uiState.value.copy(scanHistory = history)
+                _uiState.value = _uiState.value.copy(
+                    scanHistory = history,
+                    isLoggedIn = true,
+                    error = null
+                )
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(error = e.message)
+                _uiState.value = _uiState.value.copy(
+                    error = e.message,
+                    isLoggedIn = true
+                )
             }
         }
     }
@@ -87,7 +108,10 @@ class ScanViewModel @Inject constructor(
         )
 
         val updatedHistory = listOf(newHistoryItem) + _uiState.value.scanHistory
-        _uiState.value = _uiState.value.copy(scanHistory = updatedHistory)
+        _uiState.value = _uiState.value.copy(
+            scanHistory = updatedHistory,
+            isLoggedIn = isLoggedIn()
+        )
     }
 
     private fun getCurrentTimeString(): String {
@@ -115,4 +139,9 @@ class ScanViewModel @Inject constructor(
             else -> 0
         }
     }
+    fun refreshAuthState() {
+        _uiState.value = _uiState.value.copy(isLoggedIn = isLoggedIn())
+    }
+
+    private fun isLoggedIn(): Boolean = !SessionToken.token.isNullOrBlank()
 }

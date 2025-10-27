@@ -21,7 +21,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.PaintingStyle.Companion.Stroke
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalConfiguration
@@ -56,6 +55,10 @@ fun ScanScreen(
 
     val snackbarHostState = remember { SnackbarHostState() }
     var pendingImageUri by remember { mutableStateOf<Uri?>(null) }
+
+    LaunchedEffect(Unit) {
+        viewModel.refreshAuthState()
+    }
 
     // 카메라 촬영 런처(기본 카메라 앱)
     val takePictureLauncher = rememberLauncherForActivityResult(
@@ -140,7 +143,8 @@ fun ScanScreen(
                 },
                 onRecentScanClick = { showRecentScans = true },
                 showRecentScans = showRecentScans,
-                onCloseRecentScans = { showRecentScans = false }
+                onCloseRecentScans = { showRecentScans = false },
+                isLoggedIn = uiState.isLoggedIn
             )
         }
     }
@@ -165,7 +169,8 @@ private fun ScanMainScreen(
     onScanClick: () -> Unit,
     onRecentScanClick: () -> Unit,
     showRecentScans: Boolean,
-    onCloseRecentScans: () -> Unit
+    onCloseRecentScans: () -> Unit,
+    isLoggedIn: Boolean
 ) {
     val greenTeal = Color(0xFF66CBD2)
     val darkTeal = Color(0xFF008080)
@@ -317,12 +322,43 @@ private fun ScanMainScreen(
 
         // Recent scans 전체 목록 모달
         if (showRecentScans) {
-            RecentScansModal(
-                scans = uiState.scanHistory,
-                onClose = onCloseRecentScans
-            )
+            if (isLoggedIn) {
+                RecentScansModal(
+                    scans = uiState.scanHistory,
+                    onClose = onCloseRecentScans
+                )
+            } else {
+                NonMemberRecentScansDialog(onClose = onCloseRecentScans)
+            }
         }
     }
+}
+
+@Composable
+private fun NonMemberRecentScansDialog(onClose: () -> Unit) {
+    AlertDialog(
+        onDismissRequest = onClose,
+        title = {
+            Text(
+                text = "로그인이 필요합니다",
+                fontSize = 18.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = Color.Black
+            )
+        },
+        text = {
+            Text(
+                text = "로그인을 하면 더 많은 데이터를 추가할 수 있습니다.",
+                fontSize = 14.sp,
+                color = Color(0xFF424242)
+            )
+        },
+        confirmButton = {
+            TextButton(onClick = onClose) {
+                Text(text = "확인", color = Color(0xFF008080))
+            }
+        }
+    )
 }
 
 @Composable
@@ -941,7 +977,8 @@ data class ScanUiState(
     val isLoading: Boolean = false,
     val latestResult: ScanResultDto? = null,
     val scanHistory: List<ScanHistoryDto> = emptyList(),
-    val error: String? = null
+    val error: String? = null,
+    val isLoggedIn: Boolean = false
 )
 
 data class ScanResultDto(
@@ -959,27 +996,6 @@ data class ScanHistoryDto(
     val leafPoints: Int,
     val confirmed: Boolean = true
 )
-
-@Preview(showBackground = true)
-@Composable
-private fun ScanScreenPreview() {
-    // 미리보기용 가짜 데이터
-    val mockHistory = listOf(
-        ScanHistoryDto(1, "Plastic", "17 Sep 2023 11:21 AM", 10),
-        ScanHistoryDto(2, "Can", "17 Sep 2023 10:34 AM", 3),
-        ScanHistoryDto(3, "data1", "16 Sep 2023 16:08 PM", 1),
-        ScanHistoryDto(4, "data2", "16 Sep 2023 11:21 AM", 9),
-        ScanHistoryDto(5, "data3", "15 Sep 2023 11:21 AM", 7)
-    )
-
-    ScanMainScreen(
-        uiState = ScanUiState(scanHistory = mockHistory),
-        onScanClick = {},
-        onRecentScanClick = {},
-        showRecentScans = false,
-        onCloseRecentScans = {}
-    )
-}
 
 @Preview(showBackground = true)
 @Composable

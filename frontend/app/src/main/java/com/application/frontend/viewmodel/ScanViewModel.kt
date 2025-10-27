@@ -100,14 +100,14 @@ class ScanViewModel @Inject constructor(
         val key = (result.subCategory ?: result.category).trim().lowercase()
         return when (key) {
             "투명 페트병" -> 2
-            "일반 플라스틱" -> 2
+            "플라스틱" -> 2
             "비닐류" -> 1
             "스티로폼" -> 1
             "캔류" -> 2
             "고철류" -> 1
             "유리병" -> 2
             "종이류" -> 1
-            "옷/섬유류" -> 3
+            "섬유류" -> 3
             "대형 전자제품" -> 5
             "소형 전자제품" -> 3
             "전지류" -> 3

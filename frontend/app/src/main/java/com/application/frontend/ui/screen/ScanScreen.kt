@@ -7,6 +7,7 @@ import android.provider.MediaStore
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -20,6 +21,9 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.PaintingStyle.Companion.Stroke
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -30,7 +34,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.navigation.NavController
 import com.application.frontend.R
+import com.application.frontend.navigation.Routes
 import com.application.frontend.viewmodel.ScanViewModel
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.MultipartBody
@@ -39,6 +45,7 @@ import okhttp3.RequestBody.Companion.toRequestBody
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ScanScreen(
+    navController: NavController,
     viewModel: ScanViewModel = hiltViewModel()
 ) {
     // --- state / helpers ---
@@ -116,6 +123,9 @@ fun ScanScreen(
                 onDone = {
                     showResult = false
                     viewModel.clearResult()
+                },
+                onReadMore = { key, name ->
+                    navController.navigate(Routes.detail(key, name))
                 }
             )
         }
@@ -458,24 +468,34 @@ private fun RecentScansModal(
 private fun ScanResultScreen(
     result: ScanResultDto,
     onBack: () -> Unit,
-    onDone: () -> Unit
+    onDone: () -> Unit,
+    onReadMore: (String, String) -> Unit
 ) {
-    val greenTeal = Color(0xFF66CBD2)
-    val darkTeal = Color(0xFF008080)
+    val pageBackground = Color(0xFFFFFFFF)
+    val accentColor = Color(0xFF5EC9D0)
+    val accentDark = Color(0xFF008080)
+    val confidencePercent = (result.confidence * 100).toInt().coerceIn(0, 100)
+    val recyclableLabel = result.subCategory ?: "Recyclable"
+    val detailName = result.subCategory ?: result.category
+    val detailKey = mapDetailKey(detailName)
+    val isPlastic = detailName.contains("플라스틱") || result.category.contains("Plastic", ignoreCase = true)
+    val classificationTarget = if (isPlastic) "플라스틱" else detailName
+    val classificationMessage = "${classificationTarget}으로 분류되었습니다. 정확도 ${confidencePercent}%"
 
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(greenTeal)
+            .background(pageBackground)
+            .padding(horizontal = 20.dp)
     ) {
+        Spacer(modifier = Modifier.height(16.dp))
         // 상단 바
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .statusBarsPadding()
-                .padding(16.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+                .statusBarsPadding(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
         ) {
             IconButton(onClick = onBack) {
                 Icon(
@@ -487,113 +507,173 @@ private fun ScanResultScreen(
 
             Text(
                 text = "Result",
-                fontSize = 20.sp,
-                fontWeight = FontWeight.SemiBold,
+                fontSize = 22.sp,
+                fontWeight = FontWeight.Bold,
                 color = Color.Black
             )
 
             Button(
                 onClick = onDone,
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = darkTeal
-                ),
-                shape = RoundedCornerShape(20.dp)
+                colors = ButtonDefaults.buttonColors(containerColor = accentDark),
+                shape = RoundedCornerShape(18.dp),
+                contentPadding = PaddingValues(horizontal = 18.dp, vertical = 8.dp)
             ) {
                 Text(
                     text = "Done",
                     color = Color.White,
-                    fontSize = 14.sp
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.SemiBold
                 )
             }
         }
-
-        // 이미지 영역 (실제 프로젝트에서는 촬영한 이미지 표시)
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(300.dp),
-            contentAlignment = Alignment.Center
-        ) {
-            // 여기에 실제 스캔한 이미지나 AI 분석 시각화가 들어갈 예정
-            Icon(
-                painter = painterResource(id = R.drawable.ic_pet), // 임시 아이콘
-                contentDescription = "Scanned Item",
-                modifier = Modifier.size(120.dp),
-                tint = Color.Unspecified
-            )
-        }
+        Spacer(modifier = Modifier.height(24.dp))
 
         // 하단 결과 카드
         Card(
-            modifier = Modifier.fillMaxSize(),
-            shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
-            colors = CardDefaults.cardColors(containerColor = Color.White)
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 12.dp),
+            colors = CardDefaults.cardColors(containerColor = accentColor.copy(alpha = 0.18f)),
+            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+            shape = RoundedCornerShape(24.dp)
         ) {
             Column(
                 modifier = Modifier
-                    .fillMaxSize()
-                    .padding(24.dp)
+                    .fillMaxWidth()
+                    .padding(vertical = 28.dp, horizontal = 16.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 // 결과 제목
                 Text(
-                    text = result.category,
-                    fontSize = 28.sp,
+                    text = "정확도",
+                    fontSize = 18.sp,
                     fontWeight = FontWeight.Bold,
-                    color = Color.Black,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.fillMaxWidth()
+                    color = accentDark
                 )
 
                 // 재활용 가능 여부
-                Text(
-                    text = "Recyclable",
-                    fontSize = 16.sp,
-                    color = Color(0xFF4CAF50),
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.fillMaxWidth()
-                )
+                Spacer(modifier = Modifier.height(20.dp))
 
-                Spacer(modifier = Modifier.height(24.dp))
-
-                // 설명 텍스트
-                Text(
-                    text = result.description,
-                    fontSize = 14.sp,
-                    color = Color.Black,
-                    lineHeight = 20.sp
-                )
-
-                Spacer(modifier = Modifier.weight(1f))
-
-                // Read More 버튼
-                Button(
-                    onClick = { /* 상세 정보 페이지로 이동 */ },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(56.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = darkTeal
-                    ),
-                    shape = RoundedCornerShape(16.dp)
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = "Read More",
-                            color = Color.White,
-                            fontSize = 16.sp,
-                            fontWeight = FontWeight.Medium
+                Box(contentAlignment = Alignment.Center) {
+                    Canvas(modifier = Modifier.size(150.dp)) {
+                        val strokeWidth = size.minDimension * 0.12f
+                        drawArc(
+                            color = accentColor.copy(alpha = 0.25f),
+                            startAngle = -90f,
+                            sweepAngle = 360f,
+                            useCenter = false,
+                            style = Stroke(width = strokeWidth, cap = StrokeCap.Round)
                         )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Icon(
-                            painter = painterResource(id = R.drawable.ic_arrow_right),
-                            contentDescription = "Arrow",
-                            tint = Color.White,
-                            modifier = Modifier.size(20.dp)
+                        drawArc(
+                            color = accentColor,
+                            startAngle = -90f,
+                            sweepAngle = 360f * (confidencePercent / 100f),
+                            useCenter = false,
+                            style = Stroke(width = strokeWidth, cap = StrokeCap.Round)
+                        )
+                    }
+
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(
+                            text = "${confidencePercent}%",
+                            fontSize = 32.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = accentDark
                         )
                     }
                 }
+
+                Spacer(modifier = Modifier.height(20.dp))
+
+                // 설명 텍스트
+                Text(
+                    text = classificationMessage,
+                    fontSize = 13.sp,
+                    color = Color(0xFF2C3E50),
+                    textAlign = TextAlign.Center
+                )
+            }
+        }
+        Spacer(modifier = Modifier.height(32.dp))
+
+        Text(
+            text = result.category,
+            fontSize = 28.sp,
+            fontWeight = FontWeight.Bold,
+            color = Color.Black,
+            modifier = Modifier.fillMaxWidth(),
+            textAlign = TextAlign.Center
+        )
+
+        Spacer(modifier = Modifier.height(6.dp))
+
+        Text(
+            text = recyclableLabel,
+            fontSize = 16.sp,
+            fontWeight = FontWeight.SemiBold,
+            color = Color(0xFF2E7D32),
+            modifier = Modifier.fillMaxWidth(),
+            textAlign = TextAlign.Center
+        )
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        Text(
+            text = result.description,
+            fontSize = 14.sp,
+            color = Color(0xFF3C3C3C),
+            lineHeight = 21.sp
+        )
+
+        if (result.tips.isNotEmpty()) {
+            Spacer(modifier = Modifier.height(20.dp))
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                result.tips.forEach { tip ->
+                    Row(verticalAlignment = Alignment.Top) {
+                        Text(
+                            text = "•",
+                            fontSize = 16.sp,
+                            color = accentDark,
+                            modifier = Modifier.padding(end = 8.dp)
+                        )
+                        Text(
+                            text = tip,
+                            fontSize = 14.sp,
+                            color = Color(0xFF3C3C3C),
+                            lineHeight = 20.sp
+                        )
+                    }
+                }
+            }
+        }
+        Spacer(modifier = Modifier.weight(1f))
+
+        Button(
+            onClick = { onReadMore(detailKey, detailName) },
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 24.dp),
+            colors = ButtonDefaults.buttonColors(containerColor = accentDark),
+            shape = RoundedCornerShape(20.dp)
+        ) {
+            Row(
+                modifier = Modifier.padding(vertical = 6.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Center
+            ) {
+                Text(
+                    text = "Read More",
+                    color = Color.White,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Icon(
+                    painter = painterResource(id = R.drawable.ic_arrow_right),
+                    contentDescription = "Go to detail",
+                    tint = Color.White,
+                    modifier = Modifier.size(20.dp)
+                )
             }
         }
     }
@@ -642,4 +722,37 @@ private fun ScanScreenPreview() {
         showRecentScans = false,
         onCloseRecentScans = {}
     )
+}
+
+@Preview(showBackground = true)
+@Composable
+private fun ScanResultScreenPreview() {
+    val previewResult = ScanResultDto(
+        category = "Plastic Bottle",
+        subCategory = "투명 플라스틱",
+        confidence = 0.6,
+        description = "플라스틱 병을 버릴 때에는 먼저 라벨과 스티커를 깨끗이 떼어내고 뚜껑을 분리하여 버리는 것이 좋아요. 내용물이 남아 있지 않도록 충분히 헹궈서 배출하면 더 효과적으로 분리수거돼요.",
+        tips = listOf(
+            "라벨이 잘 떨어지지 않는다면 따뜻한 물에 담가두었다가 제거해 주세요.",
+            "분리 배출 후에는 다른 재활용품과 섞이지 않도록 묶어 보관하면 좋아요."
+        )
+    )
+
+    ScanResultScreen(
+        result = previewResult,
+        onBack = {},
+        onDone = {},
+        onReadMore = { _, _ -> }
+    )
+}
+
+private fun mapDetailKey(detailName: String): String {
+    val normalized = detailName.trim()
+    val fallback = normalized.lowercase().replace(" ", "_")
+    return when {
+        normalized.contains("투명", ignoreCase = true) && normalized.contains("페트", ignoreCase = true) -> "pet_water"
+        normalized.contains("plastic", ignoreCase = true) -> "pet_water"
+        fallback.isNotEmpty() -> fallback
+        else -> "unknown"
+    }
 }

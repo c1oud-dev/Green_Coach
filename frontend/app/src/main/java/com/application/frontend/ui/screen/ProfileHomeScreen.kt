@@ -29,33 +29,14 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.application.frontend.R
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.hilt.navigation.compose.hiltViewModel
+import com.application.frontend.viewmodel.MiniPostUi
+import com.application.frontend.viewmodel.ProfileHomeViewModel
+import com.application.frontend.viewmodel.ProfileUi
+import com.application.frontend.viewmodel.ReviewUi
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
-
-// 런타임 더미 없음 —> 화면 외부에서 주입
-data class ProfileUi(
-    val nickname: String,
-    val email: String,
-    val verified: Boolean,
-    val avatarRes: Int? = null // 기본 아바타 없으면 null
-)
-
-data class MiniPostUi(
-    val id: String,
-    val authorName: String,        // 작성자 이름
-    val authorAvatarRes: Int? = null, // 작성자 프로필 이미지 (없으면 null)
-    val content: String,          // 본문(길면 … 처리)
-    val likes: Int,               // 좋아요 수
-    val comments: Int,            // 댓글 수
-    val createdAtMillis: Long,    // 작성 시각(UTC or local) - 날짜+시간 표기용
-    val thumbnailRes: Int? = null // 이미지 없으면 null
-)
-
-data class ReviewUi(
-    val content: String,
-    val createdAtMillis: Long
-)
 
 private fun formatDateTime(millis: Long): String {
     val sdf = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault())
@@ -64,6 +45,21 @@ private fun formatDateTime(millis: Long): String {
 
 @Composable
 fun ProfileHomeScreen(
+    viewModel: ProfileHomeViewModel = hiltViewModel(),
+    onEditProfile: (ProfileUi) -> Unit = {}
+) {
+    val uiState by viewModel.uiState.collectAsState()
+    ProfileHomeContent(
+        user = uiState.profile,
+        posts = uiState.posts,
+        saved = uiState.saved,
+        reviews = uiState.reviews,
+        onEditProfile = onEditProfile
+    )
+}
+
+@Composable
+private fun ProfileHomeContent(
     user: ProfileUi = ProfileUi(nickname = "", email = "", verified = false),
     posts: List<MiniPostUi> = emptyList(),
     saved: List<MiniPostUi> = emptyList(),
@@ -402,7 +398,7 @@ private fun Preview_ProfileHomeScreen() {
         ReviewUi("잘 봤습니다.",   now - 7_200_000)    // 2시간 전
     )
 
-    ProfileHomeScreen(
+    ProfileHomeContent(
         user = user,
         posts = posts,
         saved = posts,

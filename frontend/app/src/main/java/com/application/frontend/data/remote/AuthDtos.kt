@@ -12,3 +12,20 @@ data class LoginRequestDto(
 data class LoginResponseDto(
     val token: String
 )
+
+@JsonClass(generateAdapter = true)
+data class SignUpRequestDto(
+    val nickname: String,
+    val email: String,
+    val password: String
+)
+
+@JsonClass(generateAdapter = true)
+data class NicknameCheckRequestDto(
+    val nickname: String
+)
+
+@JsonClass(generateAdapter = true)
+data class NicknameCheckResponseDto(
+    val available: Boolean
+)

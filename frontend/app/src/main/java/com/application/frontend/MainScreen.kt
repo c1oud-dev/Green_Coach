@@ -274,7 +274,7 @@ fun MainScreen() {
                     onForgotPassword = { navController.navigate(Routes.ForgotPassword) },
                     // 로그인 성공 시 아래로 내비게이트(연동 시 onLogin 콜백에서 호출)
                     onLogin = { _, _, _ ->
-                        navController.navigate(Routes.ProfileHome) {
+                        navController.navigate(Screen.Home.route) {
                             popUpTo(Screen.Profile.route) { inclusive = true }
                             launchSingleTop = true
                         }
@@ -334,10 +334,10 @@ fun MainScreen() {
             composable(Routes.SignUp) {
                 SignUpScreen(
                     onBack = { navController.popBackStack() },
-                    onSignUp = { _, _, _ ->
-                        // 회원가입 성공 시 프로필 홈으로 이동
-                        navController.navigate(Routes.ProfileHome) {
-                            popUpTo(Screen.Profile.route) { inclusive = false }
+                    onSignUpSuccess = {
+                        navController.navigate(Screen.Profile.route) {
+                            popUpTo(Screen.Profile.route) { inclusive = true }
+                            launchSingleTop = true
                         }
                     },
                     onClickLogin = { navController.popBackStack() }

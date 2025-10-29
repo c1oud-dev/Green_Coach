@@ -8,6 +8,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -55,13 +56,6 @@ fun SignUpScreen(
     val snackHost = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
 
-    LaunchedEffect(uiState.success) {
-        if (uiState.success) {
-            onSignUpSuccess()
-            viewModel.consumeSuccess()
-        }
-    }
-
     LaunchedEffect(uiState.errorMessage) {
         val message = uiState.errorMessage ?: return@LaunchedEffect
         scope.launch { snackHost.showSnackbar(message) }
@@ -74,6 +68,15 @@ fun SignUpScreen(
     Surface(Modifier.fillMaxSize(), color = Color.White) {
         Box(Modifier.fillMaxSize()) {
             SnackbarHost(hostState = snackHost, modifier = Modifier.align(Alignment.BottomCenter))
+
+            if (uiState.success) {
+                SignUpSuccessDialog(
+                    onConfirm = {
+                        viewModel.consumeSuccess()
+                        onSignUpSuccess()
+                    }
+                )
+            }
 
             Column(
                 modifier = Modifier
@@ -283,4 +286,34 @@ fun SignUpScreen(
 
         }
     }
+}
+
+@Composable
+private fun SignUpSuccessDialog(
+    onConfirm: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onConfirm,
+        title = {
+            Text(
+                text = "회원가입 완료",
+                fontWeight = FontWeight.Bold,
+                color = Color(0xFF3C2F2F)
+            )
+        },
+        text = {
+            Text(
+                text = "Green Coach에 가입해 주셔서 감사합니다!",
+                color = Color(0xFF5F5F5F)
+            )
+        },
+        confirmButton = {
+            Button(
+                onClick = onConfirm,
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0B8A80))
+            ) {
+                Text("확인", color = Color.White)
+            }
+        }
+    )
 }

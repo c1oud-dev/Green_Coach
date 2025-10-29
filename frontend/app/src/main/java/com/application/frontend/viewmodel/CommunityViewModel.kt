@@ -12,6 +12,9 @@ import com.application.frontend.model.Post
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -156,6 +159,24 @@ class CommunityViewModel @Inject constructor(
     }
 
     init {
+        viewModelScope.launch {
+            SessionToken.tokenFlow
+                .map { !it.isNullOrBlank() }
+                .distinctUntilChanged()
+                .collect { isLoggedIn ->
+                    _uiState.update { state ->
+                        if (isLoggedIn) {
+                            state.copy(isLoggedIn = true)
+                        } else {
+                            state.copy(isLoggedIn = false, unreadCount = 0)
+                        }
+                    }
+                    if (isLoggedIn) {
+                        loadMeta()
+                    }
+                }
+        }
+
         // 소개 게시글을 feed 맨 앞에 넣어둔다
         val intro = getIntroPost()
         _uiState.value = _uiState.value.copy(feed = listOf(intro))

@@ -36,6 +36,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavType
 import androidx.navigation.compose.*
 import androidx.navigation.navArgument
+import com.application.frontend.data.repository.SessionToken
 import com.application.frontend.navigation.Routes
 import com.application.frontend.navigation.Screen
 import com.application.frontend.ui.screen.*
@@ -56,6 +57,8 @@ fun MainScreen() {
     val navController = rememberNavController()
     val navBackStack by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStack?.destination?.route
+    val authToken by SessionToken.tokenFlow.collectAsState()
+    val isLoggedIn = !authToken.isNullOrBlank()
 
     // ✅ Scan 결과를 Forest에 반영하기 위해 공유 ViewModel 구독
     val scanVm: ScanViewModel = hiltViewModel()
@@ -72,6 +75,8 @@ fun MainScreen() {
         Screen.Profile
     )
 
+    val profileRoutes = remember { setOf(Screen.Profile.route, Routes.ProfileHome) }
+
     val hideChromeRoutes = setOf(
         Routes.SignUp, Routes.ForgotPassword, Routes.VerifyCode,
         Routes.ResetPassword, Routes.PasswordChanged,
@@ -87,6 +92,7 @@ fun MainScreen() {
         Screen.Forest.route,
         Screen.Community.route,
         Screen.Profile.route,
+        Routes.ProfileHome,
     )
 
     Scaffold(
@@ -168,6 +174,8 @@ fun MainScreen() {
                         ) {
                             bottomTabs.forEach { screen ->
                                 val isScan = screen.route == Screen.Scan.route
+                                val isProfileTab = screen.route == Screen.Profile.route
+                                val isProfileSelected = isProfileTab && currentRoute in profileRoutes
 
                                 if (isScan) {
                                     // 가운데 슬롯: 아이콘/라벨은 보이지 않게 하고 클릭만 활성화
@@ -213,14 +221,16 @@ fun MainScreen() {
                                             )
                                         },
                                         label = { Text(screen.label) },
-                                        selected = currentRoute == screen.route,
+                                        selected = if (isProfileTab) isProfileSelected else currentRoute == screen.route,
                                         onClick = {
-                                            if (currentRoute != screen.route) {
-                                                // ✅ 현재 최상단이 로그인 전 Profile 화면이면 먼저 제거
-                                                if (currentRoute == Screen.Profile.route) {
-                                                    navController.popBackStack(Screen.Profile.route, inclusive = true)
-                                                }
-                                                navController.navigate(screen.route) {
+                                            val destination = if (isProfileTab) {
+                                                if (isLoggedIn) Routes.ProfileHome else Screen.Profile.route
+                                            } else {
+                                                screen.route
+                                            }
+
+                                            if (currentRoute != destination) {
+                                                navController.navigate(destination) {
                                                     popUpTo(navController.graph.startDestinationId) {
                                                         saveState = true
                                                     }
@@ -274,7 +284,7 @@ fun MainScreen() {
                     onForgotPassword = { navController.navigate(Routes.ForgotPassword) },
                     // 로그인 성공 시 아래로 내비게이트(연동 시 onLogin 콜백에서 호출)
                     onLogin = { _, _, _ ->
-                        navController.navigate(Screen.Home.route) {
+                        navController.navigate(Routes.ProfileHome) {
                             popUpTo(Screen.Profile.route) { inclusive = true }
                             launchSingleTop = true
                         }
@@ -335,7 +345,7 @@ fun MainScreen() {
                 SignUpScreen(
                     onBack = { navController.popBackStack() },
                     onSignUpSuccess = {
-                        navController.navigate(Screen.Profile.route) {
+                        navController.navigate(Routes.ProfileHome) {
                             popUpTo(Screen.Profile.route) { inclusive = true }
                             launchSingleTop = true
                         }

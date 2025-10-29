@@ -4,10 +4,20 @@ import com.application.frontend.data.remote.AuthApi
 import com.application.frontend.data.remote.LoginRequestDto
 import com.application.frontend.data.remote.NicknameCheckRequestDto
 import com.application.frontend.data.remote.SignUpRequestDto
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import javax.inject.Inject
 
 object SessionToken {
-    @Volatile var token: String? = null
+    private val _token = MutableStateFlow<String?>(null)
+
+    var token: String?
+        get() = _token.value
+        set(value) {
+            _token.value = value
+        }
+
+    val tokenFlow: StateFlow<String?> = _token
 }
 
 class AuthRepositoryImpl @Inject constructor(

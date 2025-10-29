@@ -21,10 +21,12 @@ import java.nio.charset.StandardCharsets
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @AutoConfigureMockMvc(addFilters = true) // SecurityFilterChain + JWT 필터까지 실제로 태움
 @TestMethodOrder(MethodOrderer.OrderAnnotation::class)
-class AuthIntegrationTest @Autowired constructor(
-    private val mockMvc: MockMvc,
-    private val resetRepo: PasswordResetCodeRepository
-) {
+class AuthIntegrationTest {
+    @Autowired
+    private lateinit var mockMvc: MockMvc
+
+    @Autowired
+    private lateinit var resetRepo: PasswordResetCodeRepository
     private val mapper = jacksonObjectMapper()
     private val defaultEmail = "green@example.com"
     private val defaultPassword = "password1234"
@@ -38,6 +40,16 @@ class AuthIntegrationTest @Autowired constructor(
     @Test
     @Order(1)
     fun `회원가입 - 로그인 - me 조회`() {
+        val nicknameJson = """{ "nickname": "green" }"""
+
+        mockMvc.perform(
+            post("/auth/nickname/check")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(nicknameJson)
+        )
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.available").value(true))
+
         // 1) SignUp
         val signUpJson = """
             {
@@ -60,6 +72,14 @@ class AuthIntegrationTest @Autowired constructor(
 
         val token1 = tokenFrom(signUpRes.response.contentAsString)
         assertNotNull(token1)
+
+        mockMvc.perform(
+            post("/auth/nickname/check")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(nicknameJson)
+        )
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.available").value(false))
 
         // 2) Login
         val loginJson = """

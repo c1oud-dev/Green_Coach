@@ -26,6 +26,7 @@ class AuthService(
     @Transactional
     fun signUp(req: SignUpRequest): LoginResponse {
         require(!userRepository.existsByEmail(req.email)) { "Email already registered" }
+        require(!userRepository.existsByNickname(req.nickname)) { "Nickname already taken" }
         val user = userRepository.save(
             UserEntity(
                 email = req.email,
@@ -48,6 +49,11 @@ class AuthService(
         }
 
         return LoginResponse(tokenProvider.createToken(user.email))
+    }
+
+    fun checkNickname(req: NicknameCheckRequest): NicknameCheckResponse {
+        val available = !userRepository.existsByNickname(req.nickname)
+        return NicknameCheckResponse(available)
     }
 
     @Transactional

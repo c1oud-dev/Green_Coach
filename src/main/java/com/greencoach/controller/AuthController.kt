@@ -26,6 +26,10 @@ class AuthController(
         return ResponseEntity.ok().build()
     }
 
+    @PostMapping("/nickname/check")
+    fun checkNickname(@Valid @RequestBody req: NicknameCheckRequest): ResponseEntity<NicknameCheckResponse> =
+        ResponseEntity.ok(authService.checkNickname(req))
+
     @PostMapping("/verify")
     fun verify(@Valid @RequestBody req: VerifyCodeRequest): ResponseEntity<Void> {
         authService.verifyCode(req)

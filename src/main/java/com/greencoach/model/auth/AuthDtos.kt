@@ -22,6 +22,10 @@ data class LoginResponse(val token: String)
 
 data class ForgotPasswordRequest(@field:Email val email: String)
 
+data class NicknameCheckRequest(@field:NotBlank val nickname: String)
+
+data class NicknameCheckResponse(val available: Boolean)
+
 data class VerifyCodeRequest(
     @field:Email val email: String,
     @field:Size(min = 4, max = 4) val code: String

@@ -71,6 +71,15 @@ dependencies {
 	implementation(kotlin("stdlib-jdk8"))
 }
 
+sourceSets {
+	val main by getting {
+		kotlin.srcDir("src/main/java")
+	}
+	val test by getting {
+		kotlin.srcDir("src/test/java")
+	}
+}
+
 tasks.withType<Test> {
-	useJUnitPlatform()
+		useJUnitPlatform()
 }

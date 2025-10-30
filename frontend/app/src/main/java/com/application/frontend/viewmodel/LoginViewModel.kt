@@ -9,6 +9,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import retrofit2.HttpException
 
 data class LoginUiState(
     val email: String = "",
@@ -57,10 +58,15 @@ class LoginViewModel @Inject constructor(
                 authRepository.login(current.email.trim(), current.password)
                 _uiState.update { it.copy(isLoading = false, success = true) }
             } catch (t: Throwable) {
+                val friendlyMessage = when {
+                    t is HttpException && t.code() in setOf(400, 401, 403) ->
+                        "이메일이나 비밀번호 정보를 다시 확인해 주세요."
+                    else -> t.message ?: "Login failed"
+                }
                 _uiState.update {
                     it.copy(
                         isLoading = false,
-                        errorMessage = t.message ?: "Login failed",
+                        errorMessage = friendlyMessage,
                         success = false
                     )
                 }

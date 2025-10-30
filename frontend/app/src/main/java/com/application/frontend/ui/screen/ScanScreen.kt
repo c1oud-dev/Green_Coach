@@ -143,8 +143,7 @@ fun ScanScreen(
                 },
                 onRecentScanClick = { showRecentScans = true },
                 showRecentScans = showRecentScans,
-                onCloseRecentScans = { showRecentScans = false },
-                isLoggedIn = uiState.isLoggedIn
+                onCloseRecentScans = { showRecentScans = false }
             )
         }
     }
@@ -169,8 +168,7 @@ private fun ScanMainScreen(
     onScanClick: () -> Unit,
     onRecentScanClick: () -> Unit,
     showRecentScans: Boolean,
-    onCloseRecentScans: () -> Unit,
-    isLoggedIn: Boolean
+    onCloseRecentScans: () -> Unit
 ) {
     val greenTeal = Color(0xFF66CBD2)
     val darkTeal = Color(0xFF008080)
@@ -322,43 +320,12 @@ private fun ScanMainScreen(
 
         // Recent scans 전체 목록 모달
         if (showRecentScans) {
-            if (isLoggedIn) {
-                RecentScansModal(
-                    scans = uiState.scanHistory,
-                    onClose = onCloseRecentScans
-                )
-            } else {
-                NonMemberRecentScansDialog(onClose = onCloseRecentScans)
-            }
+            RecentScansModal(
+                scans = uiState.scanHistory,
+                onClose = onCloseRecentScans
+            )
         }
     }
-}
-
-@Composable
-private fun NonMemberRecentScansDialog(onClose: () -> Unit) {
-    AlertDialog(
-        onDismissRequest = onClose,
-        title = {
-            Text(
-                text = "로그인이 필요합니다",
-                fontSize = 18.sp,
-                fontWeight = FontWeight.SemiBold,
-                color = Color.Black
-            )
-        },
-        text = {
-            Text(
-                text = "로그인을 하면 더 많은 데이터를 추가할 수 있습니다.",
-                fontSize = 14.sp,
-                color = Color(0xFF424242)
-            )
-        },
-        confirmButton = {
-            TextButton(onClick = onClose) {
-                Text(text = "확인", color = Color(0xFF008080))
-            }
-        }
-    )
 }
 
 @Composable

@@ -1,9 +1,11 @@
 package com.application.frontend.data.repository
 
 import com.application.frontend.data.ScanApi
+import com.application.frontend.data.local.ScanHistoryStorage
 import com.application.frontend.ui.screen.ScanHistoryDto
 import com.application.frontend.ui.screen.ScanResultDto
 import okhttp3.MultipartBody
+import retrofit2.HttpException
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -11,11 +13,13 @@ interface ScanRepository {
     suspend fun analyzeImage(imagePart: MultipartBody.Part): ScanResultDto
     suspend fun getScanHistory(): List<ScanHistoryDto>
     suspend fun saveScanResult(result: ScanResultDto): ScanHistoryDto
+    suspend fun getLocalHistory(): List<ScanHistoryDto>
 }
 
 @Singleton
 class ScanRepositoryImpl @Inject constructor(
-    private val scanApi: ScanApi
+    private val scanApi: ScanApi,
+    private val historyStorage: ScanHistoryStorage
 ) : ScanRepository {
 
     override suspend fun analyzeImage(imagePart: MultipartBody.Part): ScanResultDto {
@@ -28,22 +32,48 @@ class ScanRepositoryImpl @Inject constructor(
     }
 
     override suspend fun getScanHistory(): List<ScanHistoryDto> {
-        return scanApi.getScanHistory()
+        return try {
+            val history = scanApi.getScanHistory()
+            historyStorage.replaceAll(history)
+            history
+        } catch (http: HttpException) {
+            if (http.code() == 401 || http.code() == 403) {
+                historyStorage.readAll()
+            } else {
+                historyStorage.readAll().ifEmpty { throw http }
+            }
+        } catch (e: Exception) {
+            historyStorage.readAll().ifEmpty { throw e }
+        }
     }
 
     override suspend fun saveScanResult(result: ScanResultDto): ScanHistoryDto {
-        return try {
-            scanApi.saveScanResult(result)
-        } catch (e: Exception) {
-            // 네트워크 에러 시 로컬 생성
-            ScanHistoryDto(
-                id = System.currentTimeMillis(),
-                category = result.category,
-                scannedAt = getCurrentTimeString(),
-                leafPoints = calculateLeafPoints(result)
+        val entry = try {
+            val saved = scanApi.saveScanResult(result)
+            val normalized = saved.copy(
+                confirmed = true,
+                leafPoints = if (saved.leafPoints == 0) calculateLeafPoints(result) else saved.leafPoints
             )
+            historyStorage.upsert(normalized)
+            normalized
+        } catch (_: Exception) {
+            val localEntry = createLocalEntry(result)
+            historyStorage.upsert(localEntry)
+            localEntry
         }
+        return entry
     }
+
+    override suspend fun getLocalHistory(): List<ScanHistoryDto> = historyStorage.readAll()
+
+    private fun createLocalEntry(result: ScanResultDto): ScanHistoryDto =
+        ScanHistoryDto(
+            id = System.currentTimeMillis(),
+            category = result.category,
+            scannedAt = getCurrentTimeString(),
+            leafPoints = calculateLeafPoints(result),
+            confirmed = true
+        )
 
     private fun createMockResult(): ScanResultDto {
         return ScanResultDto(

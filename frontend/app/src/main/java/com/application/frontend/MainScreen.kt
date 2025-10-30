@@ -60,6 +60,25 @@ fun MainScreen() {
     val authToken by SessionToken.tokenFlow.collectAsState()
     val isLoggedIn = !authToken.isNullOrBlank()
 
+    LaunchedEffect(authToken, currentRoute) {
+        val route = currentRoute ?: return@LaunchedEffect
+        if (authToken.isNullOrBlank()) {
+            if (route == Routes.ProfileHome) {
+                navController.navigate(Screen.Profile.route) {
+                    popUpTo(Screen.Profile.route) { inclusive = true }
+                    launchSingleTop = true
+                }
+            }
+        } else {
+            if (route == Screen.Profile.route) {
+                navController.navigate(Routes.ProfileHome) {
+                    popUpTo(Screen.Profile.route) { inclusive = true }
+                    launchSingleTop = true
+                }
+            }
+        }
+    }
+
     // ✅ Scan 결과를 Forest에 반영하기 위해 공유 ViewModel 구독
     val scanVm: ScanViewModel = hiltViewModel()
     val scanUi by scanVm.uiState.collectAsState()
@@ -345,9 +364,15 @@ fun MainScreen() {
                 SignUpScreen(
                     onBack = { navController.popBackStack() },
                     onSignUpSuccess = {
-                        navController.navigate(Routes.ProfileHome) {
-                            popUpTo(Screen.Profile.route) { inclusive = true }
-                            launchSingleTop = true
+                        val popped = navController.popBackStack()
+                        if (!popped) {
+                            navController.navigate(Screen.Profile.route) {
+                                popUpTo(navController.graph.startDestinationId) {
+                                    saveState = true
+                                }
+                                launchSingleTop = true
+                                restoreState = true
+                            }
                         }
                     },
                     onClickLogin = { navController.popBackStack() }
@@ -360,7 +385,6 @@ fun MainScreen() {
                 ForgotPasswordScreen(
                     onBack = { navController.popBackStack() },
                     onSendCode = { email ->
-                        // TODO: API 요청 후 성공 시
                         navController.navigate(Routes.VerifyCode)
                     },
                     onClickLogin = { navController.popBackStack() }

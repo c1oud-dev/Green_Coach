@@ -1,6 +1,7 @@
 package com.application.frontend.di
 
 import com.application.frontend.data.ScanApi
+import com.application.frontend.data.local.ScanHistoryStorage
 import com.application.frontend.data.repository.ScanRepository
 import com.application.frontend.data.repository.ScanRepositoryImpl
 import dagger.Module
@@ -22,6 +23,7 @@ object ScanModule {
     @Provides
     @Singleton
     fun provideScanRepository(
-        scanApi: ScanApi
-    ): ScanRepository = ScanRepositoryImpl(scanApi)
+        scanApi: ScanApi,
+        historyStorage: ScanHistoryStorage
+    ): ScanRepository = ScanRepositoryImpl(scanApi, historyStorage)
 }

@@ -35,8 +35,6 @@ fun ProfileScreen(
 ) {
     // 🔹 UI 피드백용 상태
     val uiState by viewModel.uiState.collectAsState()
-    val snackHost = remember { SnackbarHostState() }
-    val scope = rememberCoroutineScope()
 
     LaunchedEffect(uiState.success) {
         if (uiState.success) {
@@ -45,20 +43,12 @@ fun ProfileScreen(
         }
     }
 
-    LaunchedEffect(uiState.errorMessage) {
-        val message = uiState.errorMessage ?: return@LaunchedEffect
-        scope.launch { snackHost.showSnackbar(message) }
-        viewModel.consumeError()
-    }
-
-
     // 브랜드 컬러 (디자인 스샷 기준)
     val brandTeal = Color(0xFF0B8A80) // #008080 근처 톤
     val fieldShape = RoundedCornerShape(12.dp)
 
     Surface(Modifier.fillMaxSize(), color = Color.White) {
         Box(Modifier.fillMaxSize()) {
-            SnackbarHost(hostState = snackHost, modifier = Modifier.align(Alignment.BottomCenter))
             Column(
                 modifier = Modifier
                     .fillMaxSize()
@@ -123,6 +113,15 @@ fun ProfileScreen(
                         unfocusedBorderColor = Color(0xFFE0E0E0)
                     )
                 )
+
+                uiState.errorMessage?.let {
+                    Text(
+                        text = it,
+                        color = Color(0xFFD32F2F),
+                        fontSize = 12.sp,
+                        modifier = Modifier.padding(top = 8.dp)
+                    )
+                }
 
                 Spacer(Modifier.height(12.dp))
 

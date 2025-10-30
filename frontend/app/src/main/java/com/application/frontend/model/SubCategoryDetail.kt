@@ -14,3 +14,5 @@ data class SubCategoryDetail(
     val steps: List<StepSection>,
     val wrongExamples: List<String>
 )
+
+data class SearchResultDto(val key: String, val name: String)

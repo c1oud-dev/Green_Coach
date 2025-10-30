@@ -1,9 +1,11 @@
 package com.application.frontend.data.repository
 
 import com.application.frontend.data.ScanApi
+import com.application.frontend.data.local.ScanHistoryStorage
 import com.application.frontend.ui.screen.ScanHistoryDto
 import com.application.frontend.ui.screen.ScanResultDto
 import okhttp3.MultipartBody
+import retrofit2.HttpException
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -11,11 +13,13 @@ interface ScanRepository {
     suspend fun analyzeImage(imagePart: MultipartBody.Part): ScanResultDto
     suspend fun getScanHistory(): List<ScanHistoryDto>
     suspend fun saveScanResult(result: ScanResultDto): ScanHistoryDto
+    suspend fun getLocalHistory(): List<ScanHistoryDto>
 }
 
 @Singleton
 class ScanRepositoryImpl @Inject constructor(
-    private val scanApi: ScanApi
+    private val scanApi: ScanApi,
+    private val historyStorage: ScanHistoryStorage
 ) : ScanRepository {
 
     override suspend fun analyzeImage(imagePart: MultipartBody.Part): ScanResultDto {
@@ -29,26 +33,47 @@ class ScanRepositoryImpl @Inject constructor(
 
     override suspend fun getScanHistory(): List<ScanHistoryDto> {
         return try {
-            scanApi.getScanHistory()
+            val history = scanApi.getScanHistory()
+            historyStorage.replaceAll(history)
+            history
+        } catch (http: HttpException) {
+            if (http.code() == 401 || http.code() == 403) {
+                historyStorage.readAll()
+            } else {
+                historyStorage.readAll().ifEmpty { throw http }
+            }
         } catch (e: Exception) {
-            // 네트워크 에러 시 Mock 데이터 반환 (개발 중)
-            createMockHistory()
+            historyStorage.readAll().ifEmpty { throw e }
         }
     }
 
     override suspend fun saveScanResult(result: ScanResultDto): ScanHistoryDto {
-        return try {
-            scanApi.saveScanResult(result)
-        } catch (e: Exception) {
-            // 네트워크 에러 시 로컬 생성
-            ScanHistoryDto(
-                id = System.currentTimeMillis(),
-                category = result.category,
-                scannedAt = getCurrentTimeString(),
-                leafPoints = calculateLeafPoints(result)
+        val entry = try {
+            val saved = scanApi.saveScanResult(result)
+            val normalized = saved.copy(
+                confirmed = true,
+                leafPoints = if (saved.leafPoints == 0) calculateLeafPoints(result) else saved.leafPoints
             )
+            historyStorage.upsert(normalized)
+            normalized
+        } catch (_: Exception) {
+            val localEntry = createLocalEntry(result)
+            historyStorage.upsert(localEntry)
+            localEntry
         }
+        return entry
     }
+
+    override suspend fun getLocalHistory(): List<ScanHistoryDto> = historyStorage.readAll()
+
+    private fun createLocalEntry(result: ScanResultDto): ScanHistoryDto =
+        ScanHistoryDto(
+            id = System.currentTimeMillis(),
+            category = result.category,
+            scannedAt = getCurrentTimeString(),
+            leafPoints = calculateLeafPoints(result),
+            confirmed = true
+        )
 
     private fun createMockResult(): ScanResultDto {
         return ScanResultDto(
@@ -76,30 +101,28 @@ class ScanRepositoryImpl @Inject constructor(
         )
     }
 
-    private fun createMockHistory(): List<ScanHistoryDto> {
-        return listOf(
-            ScanHistoryDto(1, "Plastic", "17 Sep 2023 11:21 AM", 10),
-            ScanHistoryDto(2, "Can", "17 Sep 2023 10:34 AM", 3),
-            ScanHistoryDto(3, "Cashback from purchase", "16 Sep 2023 16:08 PM", 175),
-            ScanHistoryDto(4, "Transfer to card", "16 Sep 2023 11:21 AM", 9000),
-            ScanHistoryDto(5, "Transfer to card", "15 Sep 2023 11:21 AM", 9267),
-            ScanHistoryDto(6, "Cashback from purchase", "14 Sep 2023 18:59 AM", 321),
-            ScanHistoryDto(7, "Transfer to card", "13 Sep 2023 10:21 AM", 70)
-        )
-    }
-
     private fun getCurrentTimeString(): String {
         val sdf = java.text.SimpleDateFormat("dd MMM yyyy HH:mm a", java.util.Locale.ENGLISH)
         return sdf.format(java.util.Date())
     }
 
     private fun calculateLeafPoints(result: ScanResultDto): Int {
-        return when (result.category.lowercase()) {
-            "plastic bottle", "plastic" -> 10
-            "can" -> 3
-            "paper" -> 5
-            "glass" -> 8
-            else -> 1
+        val key = (result.subCategory ?: result.category).trim().lowercase()
+        return when (key) {
+            "투명 페트병" -> 2
+            "플라스틱" -> 2
+            "비닐류" -> 1
+            "스티로폼" -> 1
+            "캔류" -> 2
+            "고철류" -> 1
+            "유리병" -> 2
+            "종이류" -> 1
+            "섬유류" -> 3
+            "대형 전자제품" -> 5
+            "소형 전자제품" -> 3
+            "전지류" -> 3
+            "가구" -> 5
+            else -> 0
         }
     }
 }

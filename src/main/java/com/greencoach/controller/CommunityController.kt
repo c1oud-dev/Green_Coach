@@ -43,22 +43,6 @@ class CommunityController(
         return ResponseEntity.ok(communityService.readNotification(id, isLoggedIn))
     }
 
-    // ───────── 테스트용(원하면 삭제) ─────────
-    @PostMapping("/notifications/test-like")
-    fun testLike(
-        @RequestParam actorId: Long,
-        @RequestParam actorName: String?,
-        @RequestParam postId: Long
-    ) = ResponseEntity.ok(communityService.notifyLike(actorId, actorName, postId))
-
-    @PostMapping("/notifications/test-comment")
-    fun testComment(
-        @RequestParam actorId: Long,
-        @RequestParam actorName: String?,
-        @RequestParam postId: Long,
-        @RequestParam commentId: Long
-    ) = ResponseEntity.ok(communityService.notifyComment(actorId, actorName, postId, commentId))
-
     /** 단건 삭제 */
     @DeleteMapping("/notifications/{id}")
     fun deleteOne(@PathVariable id: Long): ResponseEntity<CommunityNotificationMetaDto> {

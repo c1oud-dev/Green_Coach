@@ -8,9 +8,11 @@ import com.application.frontend.data.community.CommunityApi
 import com.application.frontend.data.community.CommunityRepository
 import com.application.frontend.data.detail.DetailApi
 import com.application.frontend.data.remote.AuthApi
+import com.application.frontend.data.remote.UserApi
 import com.application.frontend.data.repository.AuthRepository
 import com.application.frontend.data.repository.AuthRepositoryImpl
 import com.application.frontend.data.repository.SessionToken
+import com.application.frontend.data.repository.UserRepository
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -84,12 +86,23 @@ object NetworkModule {
     fun provideBackendApi(retrofit: Retrofit): BackendApi =
         retrofit.create(BackendApi::class.java)
 
+    @Provides
+    @Singleton
+    fun provideUserApi(retrofit: Retrofit): UserApi =
+        retrofit.create(UserApi::class.java)
+
 
     // 🔹 Auth Repository (Interface -> Impl 바인딩)
     @Provides
     @Singleton
     fun provideAuthRepository(api: AuthApi): AuthRepository =
         AuthRepositoryImpl(api)
+
+    @Provides
+    @Singleton
+    fun provideUserRepository(api: UserApi): UserRepository =
+        UserRepository(api)
+
 
     @Provides
     @Singleton

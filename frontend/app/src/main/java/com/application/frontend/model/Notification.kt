@@ -26,6 +26,7 @@ data class Notification(
     val postId: Long? = null,
     val commentId: Long? = null,
     val replyToName: String? = null,
+    val previewText: String? = null,
     val createdAt: Instant,   // 상대시간 표시에 사용 (e.g., "8분 전")
     val read: Boolean = false
 )

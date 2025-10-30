@@ -5,6 +5,8 @@ import com.application.frontend.model.CreateCommentRequest
 import com.application.frontend.model.Notification
 import com.application.frontend.model.NotificationMeta
 import com.application.frontend.model.Post
+import com.application.frontend.model.ToggleCommentLikeRequest
+import com.application.frontend.model.TogglePostLikeRequest
 import retrofit2.http.Body
 import retrofit2.http.DELETE
 import retrofit2.http.GET
@@ -38,8 +40,18 @@ interface CommunityApi {
         @Body body: CreateCommentRequest
     ): Comment
 
+    @POST("/community/posts/{postId}/like")
+    suspend fun togglePostLike(
+        @Path("postId") postId: String,
+        @Body body: TogglePostLikeRequest
+    ): Post
+
     @POST("/community/comments/{commentId}/like")
-    suspend fun likeComment(@Path("commentId") commentId: String): Comment
+    suspend fun toggleCommentLike(
+        @Path("commentId") commentId: String,
+        @Body body: ToggleCommentLikeRequest
+    ): Comment
+
 
     @DELETE("/community/comments/{commentId}")
     suspend fun deleteComment(@Path("commentId") commentId: String)

@@ -2,18 +2,26 @@ package com.application.frontend.ui.screen
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import com.application.frontend.R
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Alignment
@@ -30,6 +38,7 @@ import com.application.frontend.ui.screen.components.ForestProgressSection
 import com.application.frontend.viewmodel.ForestViewModel
 
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.sp
 import com.application.frontend.model.Co2Point
 import com.application.frontend.model.Co2Series
 import com.application.frontend.model.Co2Snapshot
@@ -39,23 +48,33 @@ private val ForestBg = Color(0xFFD7E9D4) // 연한 민트톤 배경
 fun ForestScreen(
     // ScanScreen에서 공유한 누적 촬영 수. (임시 0 기본값)
     shots: Int = 0,
+    leafs: Int = 0,
     viewModel: ForestViewModel = hiltViewModel()
 ) {
-    LaunchedEffect(shots) { viewModel.init(shots) }
+    LaunchedEffect(shots, leafs) {
+        viewModel.init(shots, leafs)
+    }
     val ui = viewModel.ui.collectAsState().value
 
     Column(
         Modifier
             .fillMaxSize()
-            .background(ForestBg)                 // ✅ 배경색
+            .background(ForestBg)
+            .statusBarsPadding()
             .padding(horizontal = 20.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Spacer(Modifier.height(30.dp))
+        Spacer(Modifier.height(24.dp))
         Text(
             text = ui.stage.title, // "Seed" ~ "Mature Tree"
             style = MaterialTheme.typography.titleLarge,
-            fontWeight = FontWeight.Bold,         // ✅ 좀 더 굵게
+            fontWeight = FontWeight.Bold,
+        )
+        Spacer(Modifier.height(4.dp))
+        Text(                                    // ★ 제목 아래 leafs 수 표기
+            text = "${ui.totalLeafs} leafs",
+            color = Color(0xFF008080),
+            style = MaterialTheme.typography.bodyMedium
         )
         Spacer(Modifier.height(25.dp))
 
@@ -115,22 +134,77 @@ fun ForestScreen(
 
 @Composable
 private fun GrowthHelpDialog(onDismiss: () -> Unit) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("숲 성장 단계", fontWeight = FontWeight.Bold) },
-        text = {
-            Column {
-                Text("1. 씨앗 단계 (Seed)\n- 쓰레기 촬영 1~5회 달성 시.\n")
-                Text("2. 새싹 단계 (Sprout)\n- 쓰레기 촬영 6~10회 달성 시.\n")
-                Text("3. 어린 나무 단계 (Sapling)\n- 쓰레기 촬영 11~15회 달성 시.\n")
-                Text("4. 성장 중인 나무 단계 (Growing Tree)\n- 쓰레기 촬영 16~20회 달성 시.\n")
-                Text("5. 성숙한 나무 단계 (Mature Tree)\n- 쓰레기 촬영 21~30회 달성 시.\n")
-                Text("6. 열매 맺은 나무 단계 (Fruit-bearing Tree)\n- 쓰레기 촬영 31회 이상 달성 시.\n")
+    // 사진 느낌에 맞춘 값들
+    val cardShape = RoundedCornerShape(12.dp)
+    val cardBg = Color.White
+    val cardBorder = Color(0xFFE6E9EF)     // 연회색 테두리
+    val titleColor = Color(0xFF111827)     // 진한 텍스트
+    val bodyColor = Color(0xFF111827)
+
+    androidx.compose.ui.window.Dialog(onDismissRequest = onDismiss) {
+        Surface(
+            shape = cardShape,
+            color = cardBg,
+            tonalElevation = 0.dp,
+            shadowElevation = 8.dp,                 // ✅ 은은한 그림자
+            modifier = Modifier
+                .padding(20.dp)
+                .border(1.dp, cardBorder, cardShape) // ✅ 연한 테두리
+        ) {
+            Column(Modifier.padding(16.dp)) {
+                CompositionLocalProvider(
+                    LocalTextStyle provides LocalTextStyle.current.copy(
+                        fontSize = 12.sp,          // ✅ 본문 기본 크기 축소
+                        lineHeight = 20.sp         // 줄 간격도 함께 조절 (선택)
+                    )
+                ) {
+                    // 제목
+                    Text(
+                        text = "숲 성장 단계",
+                        color = titleColor,
+                        style = MaterialTheme.typography.titleMedium.copy(fontSize = 15.sp),
+                        fontWeight = FontWeight.Bold
+                    )
+
+                    Spacer(Modifier.height(10.dp))
+
+                    // 본문(사진 기준 수치로 업데이트)
+                    GrowthStageItem("1. 씨앗 단계 (Seed)", "• 쓰레기 촬영 10회 달성 시.", bodyColor)
+                    GrowthStageItem("2. 새싹 단계 (Sprout)", "• 쓰레기 촬영 20회 달성 시.", bodyColor)
+                    GrowthStageItem("3. 어린 나무 단계 (Sapling)", "• 쓰레기 촬영 30회 달성 시.", bodyColor)
+                    GrowthStageItem(
+                        "4. 성장 중인 나무 단계 (Growing Tree)",
+                        "• 쓰레기 촬영 50회 달성 시.",
+                        bodyColor
+                    )
+                    GrowthStageItem("5. 성숙한 나무 단계 (Mature Tree)", "• 쓰레기 촬영 70회 달성 시.", bodyColor)
+                    GrowthStageItem(
+                        "6. 열매 맺은 나무 단계 (Fruit-bearing Tree)",
+                        "• 쓰레기 촬영 100회 이상 달성 시.",
+                        bodyColor
+                    )
+
+                    Spacer(Modifier.height(8.dp))
+
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                        TextButton(onClick = onDismiss) { Text("확인") }
+                    }
+                }
             }
-        },
-        confirmButton = { TextButton(onClick = onDismiss) { Text("확인") } }
-    )
+        }
+    }
 }
+
+// 각 단계 한 줄(제목 + 점 목록) 컴포넌트
+@Composable
+private fun GrowthStageItem(title: String, bullet: String, textColor: Color) {
+    Column(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
+        Text(title, color = textColor, fontWeight = FontWeight.SemiBold)
+        Spacer(Modifier.height(2.dp))
+        Text(bullet, color = textColor)
+    }
+}
+
 
 
 /* ─────────────────────────────────────────────────────────────
@@ -156,6 +230,7 @@ private fun ForestScreenPreviewHost(ui: PreviewForestUi) {
         Modifier
             .fillMaxSize()
             .background(ForestBg)
+            .statusBarsPadding()
             .padding(horizontal = 20.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {

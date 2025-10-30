@@ -15,13 +15,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
 import com.application.frontend.BuildConfig
-import com.application.frontend.model.StepSection
 import com.application.frontend.model.SubCategoryDetail
 import com.application.frontend.ui.state.UiState
 import com.application.frontend.viewmodel.SubCategoryDetailViewModel
@@ -41,7 +39,8 @@ fun SubCategoryDetailScreen(
     LaunchedEffect(key) { vm.load(key) }
 
     Scaffold(
-        snackbarHost = { SnackbarHost(snackbarHostState) }
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),    // 상·하단 시스템 인셋 제거
+        snackbarHost = { SnackbarHost(snackbarHostState)  }
     ) { inner ->
         when (val state = uiState) {
 
@@ -59,7 +58,8 @@ fun SubCategoryDetailScreen(
             is UiState.Success -> {
                 SubCategoryDetailContent(
                     detail = state.data,
-                    onBack = onBack
+                    onBack = onBack,
+                    contentPadding = inner
                 )
             }
 
@@ -91,30 +91,38 @@ fun SubCategoryDetailScreen(
 @Composable
 fun SubCategoryDetailContent(
     detail: SubCategoryDetail,
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    contentPadding: PaddingValues = PaddingValues(0.dp)
 ) {
-    Scaffold { inner ->
-        Column(
+    Column(
+        modifier = Modifier
+            .padding(contentPadding)
+            .navigationBarsPadding()   // 👈 시스템 내비게이션바만큼 하단 여백 추가
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+    ) {
+        // ── 헤더 영역 ───────────────────────────────────────────────
+        Box(
             modifier = Modifier
-                .padding(inner)
-                .fillMaxSize()
-                .verticalScroll(rememberScrollState())
+                .fillMaxWidth()
+                .height(260.dp)
+                .background(Color(AndroidColor.parseColor(detail.headerColor)))
         ) {
-            // ── 헤더 영역 ───────────────────────────────────────────────
+            val imageModel =
+                if (detail.imageUrl.startsWith("http", true)) detail.imageUrl
+                else BuildConfig.BASE_URL.trimEnd('/') + detail.imageUrl
+
             Box(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .height(260.dp)
-                    .background(Color(AndroidColor.parseColor(detail.headerColor))),
-                contentAlignment = Alignment.Center
+                    .fillMaxSize()
+                    .statusBarsPadding()
+                    .padding(horizontal = 8.dp)
+                    .padding(top = 8.dp)
             ) {
                 // 뒤로가기 버튼
                 IconButton(
                     onClick = onBack,
-                    modifier = Modifier
-                        .statusBarsPadding()
-                        .align(Alignment.TopStart)
-                        .padding(start = 8.dp, top = 8.dp)
+                    modifier = Modifier.align(Alignment.TopStart)
                 ) {
                     Icon(
                         Icons.Rounded.ArrowBack,
@@ -122,93 +130,90 @@ fun SubCategoryDetailContent(
                         tint = Color.White
                     )
                 }
-
-                val imageModel =
-                    if (detail.imageUrl.startsWith("http", true)) detail.imageUrl
-                    else BuildConfig.BASE_URL.trimEnd('/') + detail.imageUrl
-
+                // 헤더 중앙 이미지
                 AsyncImage(
                     model = imageModel,
                     contentDescription = detail.name,
                     modifier = Modifier
+                        .align(Alignment.Center)
                         .height(140.dp)
                         .padding(horizontal = 16.dp),
                     contentScale = ContentScale.Fit
                 )
             }
+        }
 
-            // ── 본문 카드 ───────────────────────────────────────────────
-            Surface(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .offset(y = (-24).dp), // 헤더에 겹치기
-                shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
-                color = Color.White,
-                shadowElevation = 4.dp
-            ) {
-                Column(Modifier.padding(horizontal = 20.dp, vertical = 27.dp)) {
-                    Text(
-                        text = detail.name,
-                        fontSize = 22.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Spacer(Modifier.height(8.dp))
-                    Text(
-                        text = detail.subtitle,
-                        fontSize = 15.sp,
-                        color = Color.DarkGray
-                    )
+        // ── 본문 카드 ───────────────────────────────────────────────
+        Surface(
+            modifier = Modifier
+                .fillMaxSize()
+                .offset(y = (-24).dp), // 헤더에 겹치기
+            shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
+            color = Color.White,
+            shadowElevation = 4.dp
+        ) {
+            Column(Modifier.padding(horizontal = 20.dp, vertical = 27.dp)) {
+                Text(
+                    text = detail.name,
+                    fontSize = 22.sp,
+                    fontWeight = FontWeight.Bold
+                )
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    text = detail.subtitle,
+                    fontSize = 15.sp,
+                    color = Color.DarkGray
+                )
 
-                    Spacer(Modifier.height(24.dp))
+                Spacer(Modifier.height(24.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text("♻️", fontSize = 18.sp)
+                    Spacer(Modifier.width(8.dp))
+                    Text(
+                        text = "버리는 방법",
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+                Divider(Modifier.padding(vertical = 8.dp))
+
+                // 단계 & 불릿
+                detail.steps.forEachIndexed { idx, section ->
+                    Text("${idx + 1}. ${section.title}", fontWeight = FontWeight.Bold)
+                    Spacer(Modifier.height(6.dp))
+                    section.bullets.forEach { line ->
+                        Row(Modifier.padding(start = 8.dp, bottom = 6.dp)) {
+                            Text("• ")
+                            Spacer(Modifier.width(4.dp))
+                            Text(line)
+                        }
+                    }
+                    Spacer(Modifier.height(12.dp))
+                }
+
+                // 잘못된 예시
+                if (detail.wrongExamples.isNotEmpty()) {
+                    Spacer(Modifier.height(20.dp))
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text("♻️", fontSize = 18.sp)
+                        Text("🚫", fontSize = 18.sp, color = Color(0xFFCC3B3B))
                         Spacer(Modifier.width(8.dp))
                         Text(
-                            text = "버리는 방법",
+                            text = "잘못된 배출 예시",
                             fontSize = 18.sp,
                             fontWeight = FontWeight.SemiBold
                         )
                     }
                     Divider(Modifier.padding(vertical = 8.dp))
-
-                    // 단계 & 불릿
-                    detail.steps.forEachIndexed { idx, section ->
-                        Text("${idx + 1}. ${section.title}", fontWeight = FontWeight.Bold)
-                        Spacer(Modifier.height(6.dp))
-                        section.bullets.forEach { line ->
-                            Row(Modifier.padding(start = 8.dp, bottom = 6.dp)) {
-                                Text("• ")
-                                Spacer(Modifier.width(4.dp))
-                                Text(line)
-                            }
-                        }
-                        Spacer(Modifier.height(12.dp))
-                    }
-
-                    // 잘못된 예시
-                    if (detail.wrongExamples.isNotEmpty()) {
-                        Spacer(Modifier.height(20.dp))
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text("🚫", fontSize = 18.sp, color = Color(0xFFCC3B3B))
-                            Spacer(Modifier.width(8.dp))
-                            Text(
-                                text = "잘못된 배출 예시",
-                                fontSize = 18.sp,
-                                fontWeight = FontWeight.SemiBold
-                            )
-                        }
-                        Divider(Modifier.padding(vertical = 8.dp))
-                        detail.wrongExamples.forEach {
-                            Row(Modifier.padding(start = 8.dp, top = 6.dp)) {
-                                Text("• ")
-                                Spacer(Modifier.width(4.dp))
-                                Text(it)
-                            }
+                    detail.wrongExamples.forEach {
+                        Row(Modifier.padding(start = 8.dp, top = 6.dp)) {
+                            Text("• ")
+                            Spacer(Modifier.width(4.dp))
+                            Text(it)
                         }
                     }
-
-                    Spacer(Modifier.height(24.dp))
                 }
+
+                Spacer(Modifier.height(24.dp))
             }
         }
     }

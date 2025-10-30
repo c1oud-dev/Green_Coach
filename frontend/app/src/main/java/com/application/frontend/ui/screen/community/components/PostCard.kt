@@ -26,6 +26,7 @@ fun PostCard(
     onLike: () -> Unit,
     onBookmark: () -> Unit,
     onComment: () -> Unit,
+    showBookmark: Boolean,
     isOwner: Boolean,
     onEdit: () -> Unit,
     onDelete: () -> Unit,
@@ -121,6 +122,9 @@ fun PostCard(
             ReactionRow(
                 likeCount = post.likeCount,
                 commentCount = post.commentCount,
+                liked = post.liked,
+                bookmarked = post.bookmarked,
+                showBookmark = showBookmark,
                 onLike = onLike,
                 onBookmark = onBookmark,
                 onComment = onComment

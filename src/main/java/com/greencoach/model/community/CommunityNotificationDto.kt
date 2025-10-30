@@ -8,15 +8,13 @@ enum class NotificationType { LIKE, COMMENT, REPLY, FOLLOW, SYSTEM }
 data class CommunityNotificationDto(
     val id: Long,
     val type: NotificationType,
-    /** 알림을 유발한 사용자 */
-    val actorId: Long,
+    val actorId: Long,  /** 알림을 유발한 사용자 */
     val actorName: String? = null,
-    /** 어떤 리소스에 대한 알림인지 (게시글/댓글 등) */
-    val postId: Long? = null,
+    val postId: Long? = null,   /** 어떤 리소스에 대한 알림인지 (게시글/댓글 등) */
     val commentId: Long? = null,
     val replyToName: String? = null,
-    /** 생성 시각 & 읽음 여부 */
-    val createdAt: Instant = Instant.now(),
+    val previewText: String? = null,
+    val createdAt: Instant = Instant.now(),     /** 생성 시각 & 읽음 여부 */
     val read: Boolean = false
 )
 

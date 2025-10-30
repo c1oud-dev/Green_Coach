@@ -47,17 +47,35 @@ class CommentService(
         )
 
         // 게시글 댓글 수 증가
-        postRepository.findById(postId).ifPresent {
+        val post = postRepository.findById(postId).orElse(null)
+        val postOwnerId = post?.authorId
+        post?.let {
             postRepository.save(it.copy(commentCount = it.commentCount + 1))
         }
 
-        // 알림 트리거
-        communityService.notifyComment(
-            actorId = saved.authorId,
-            actorName = req.authorName ?: "Anonymous",
-            postId = postId,
-            commentId = saved.id
-        )
+        val actorName = req.authorName ?: "Anonymous"
+
+        if (req.parentId == null) {
+            communityService.notifyComment(
+                actorId = saved.authorId,
+                actorName = actorName,
+                postId = postId,
+                commentId = saved.id,
+                targetOwnerId = postOwnerId,
+                previewText = req.content
+            )
+        } else {
+            val parent = req.parentId?.let { commentRepository.findById(it).orElse(null) }
+            communityService.notifyReply(
+                actorId = saved.authorId,
+                actorName = actorName,
+                postId = postId,
+                commentId = saved.id,
+                replyToName = parent?.let { "User${it.authorId}" },
+                targetOwnerId = parent?.authorId,
+                previewText = req.content
+            )
+        }
 
         return saved.toDto(
             authorName = req.authorName,
@@ -68,10 +86,25 @@ class CommentService(
 
     /** 댓글 좋아요 */
     @Transactional
-    fun likeComment(commentId: Long): CommentDto {
-        val updated = commentRepository.findById(commentId).orElseThrow()
-        val liked = updated.copy(likeCount = updated.likeCount + 1)
-        return commentRepository.save(liked).toDto()
+    fun likeComment(commentId: Long, req: ToggleCommentLikeRequest): CommentDto {
+        val entity = commentRepository.findById(commentId).orElseThrow()
+        val delta = if (req.liked) 1 else -1
+        val updated = commentRepository.save(
+            entity.copy(likeCount = (entity.likeCount + delta).coerceAtLeast(0))
+        )
+
+        if (req.liked) {
+            communityService.notifyLike(
+                actorId = req.actorId ?: 0L,
+                actorName = req.actorName,
+                postId = updated.postId,
+                commentId = updated.id,
+                targetOwnerId = entity.authorId,
+                previewText = updated.content
+            )
+        }
+
+        return updated.toDto().copy(liked = req.liked)
     }
 
     /** 댓글 삭제(대댓글 포함) */

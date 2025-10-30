@@ -24,6 +24,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
@@ -129,27 +130,53 @@ private fun NotificationRow(n: Notification) {
 
         Column(Modifier.weight(1f)) {
             val actor = n.actorName ?: "Someone"
-            val target = n.replyToName     // ← Notification 모델에 추가(② 참고)
+            val target = n.replyToName
 
-            Text(
-                buildAnnotatedString {
+            val title = when (n.type) {
+                NotificationType.LIKE -> buildAnnotatedString {
                     withStyle(SpanStyle(fontWeight = FontWeight.SemiBold)) { append(actor) }
-                    when (n.type) {
-                        NotificationType.REPLY -> {
-                            append(" replied to ")
-                            if (!target.isNullOrBlank()) {
-                                withStyle(SpanStyle(fontWeight = FontWeight.SemiBold)) { append(target) }
-                            } else {
-                                append("your comment")
-                            }
-                        }
-                        else -> { // COMMENT, SYSTEM 등
-                            append(" commented")
-                        }
+                    if (n.commentId != null) {
+                        append(" liked your comment")
+                    } else {
+                        append(" liked your post")
                     }
-                },
-                style = MaterialTheme.typography.bodyMedium
-            )
+                }
+
+                NotificationType.COMMENT -> buildAnnotatedString {
+                    withStyle(SpanStyle(fontWeight = FontWeight.SemiBold)) { append(actor) }
+                    append(" commented on your post")
+                }
+
+                NotificationType.REPLY -> buildAnnotatedString {
+                    withStyle(SpanStyle(fontWeight = FontWeight.SemiBold)) { append(actor) }
+                    append(" replied to ")
+                    if (!target.isNullOrBlank()) {
+                        withStyle(SpanStyle(fontWeight = FontWeight.SemiBold)) { append(target) }
+                    } else {
+                        append("your comment")
+                    }
+                }
+
+                NotificationType.FOLLOW -> buildAnnotatedString {
+                    withStyle(SpanStyle(fontWeight = FontWeight.SemiBold)) { append(actor) }
+                    append(" followed you")
+                }
+
+                NotificationType.SYSTEM -> buildAnnotatedString { append(actor) }
+            }
+
+            Text(title, style = MaterialTheme.typography.bodyMedium)
+
+            if (!n.previewText.isNullOrBlank()) {
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    text = n.previewText,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
 
             Spacer(Modifier.height(6.dp))
 

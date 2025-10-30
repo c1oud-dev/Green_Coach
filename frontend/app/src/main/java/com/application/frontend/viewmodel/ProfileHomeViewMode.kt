@@ -2,7 +2,9 @@ package com.application.frontend.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.application.frontend.data.repository.SavedPostRepository
 import com.application.frontend.data.repository.SessionToken
+import com.application.frontend.data.repository.UserContributionRepository
 import com.application.frontend.data.repository.UserRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
@@ -47,7 +49,9 @@ data class ProfileHomeUiState(
 
 @HiltViewModel
 class ProfileHomeViewModel @Inject constructor(
-    private val userRepository: UserRepository
+    private val userRepository: UserRepository,
+    private val savedPostRepository: SavedPostRepository,
+    private val userContributionRepository: UserContributionRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ProfileHomeUiState())
@@ -55,6 +59,9 @@ class ProfileHomeViewModel @Inject constructor(
 
     init {
         observeSession()
+        observeSavedPosts()
+        observeMyPosts()
+        observeMyReviews()
     }
 
     private fun observeSession() {
@@ -62,9 +69,69 @@ class ProfileHomeViewModel @Inject constructor(
             SessionToken.tokenFlow.collectLatest { token ->
                 if (token.isNullOrBlank()) {
                     _uiState.value = ProfileHomeUiState()
+                    savedPostRepository.clear()
+                    userContributionRepository.clear()
                 } else {
                     loadProfile()
                 }
+            }
+        }
+    }
+
+    private fun observeSavedPosts() {
+        viewModelScope.launch {
+            savedPostRepository.savedPosts.collectLatest { saved ->
+                val savedMini = saved.map {
+                    MiniPostUi(
+                        id = it.id,
+                        authorName = it.authorName,
+                        content = it.content,
+                        likes = it.likeCount,
+                        comments = it.commentCount,
+                        createdAtMillis = it.savedAt,
+                        authorAvatarRes = null,
+                        thumbnailRes = null
+                    )
+                }
+                _uiState.update { state -> state.copy(saved = savedMini) }
+            }
+        }
+    }
+
+    private fun observeMyPosts() {
+        viewModelScope.launch {
+            userContributionRepository.myPosts.collectLatest { myPosts ->
+                val posts = myPosts
+                    .sortedByDescending { it.createdAtMillis }
+                    .map { post ->
+                        MiniPostUi(
+                            id = post.id,
+                            authorName = post.authorName,
+                            content = post.content,
+                            likes = post.likeCount,
+                            comments = post.commentCount,
+                            createdAtMillis = post.createdAtMillis,
+                            authorAvatarRes = null,
+                            thumbnailRes = null
+                        )
+                    }
+                _uiState.update { state -> state.copy(posts = posts) }
+            }
+        }
+    }
+
+    private fun observeMyReviews() {
+        viewModelScope.launch {
+            userContributionRepository.myReviews.collectLatest { reviews ->
+                val reviewUi = reviews
+                    .sortedByDescending { it.createdAtMillis }
+                    .map { review ->
+                        ReviewUi(
+                            content = review.content,
+                            createdAtMillis = review.createdAtMillis
+                        )
+                    }
+                _uiState.update { state -> state.copy(reviews = reviewUi) }
             }
         }
     }

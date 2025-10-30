@@ -117,6 +117,7 @@ fun CommunityScreen(
                                     showLoginDialog = true
                                 }
                             },
+                            showBookmark = uiState.isLoggedIn,
                             isOwner = viewModel.isOwner(post),
                             onEdit = { viewModel.editPost(post.id) },
                             onDelete = { viewModel.deletePost(post.id) },

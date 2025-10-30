@@ -4,7 +4,10 @@ import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.application.frontend.data.community.CommunityRepository
+import com.application.frontend.data.repository.SavedPostRepository
 import com.application.frontend.data.repository.SessionToken
+import com.application.frontend.data.repository.UserContributionRepository
+import com.application.frontend.data.repository.UserRepository
 import com.application.frontend.model.Comment
 import com.application.frontend.model.CreateCommentRequest
 import com.application.frontend.model.Notification
@@ -46,11 +49,15 @@ data class CommunityUiState(
 
 @HiltViewModel
 class CommunityViewModel @Inject constructor(
-    private val repository: CommunityRepository
+    private val repository: CommunityRepository,
+    private val savedPostRepository: SavedPostRepository,
+    private val userContributionRepository: UserContributionRepository,
+    private val userRepository: UserRepository
 ) : ViewModel() {
 
-    private val currentUserId = "Green Coach"    // TODO: 로그인 붙을 때 실제 사용자 id로 대체(로그인 전 임시 표시명 고정)
-    private val currentUserIdLong = 0L     // 서버의 authorId(0)와 동일
+    private var currentUserId = "0"          // 실제 로그인 사용자 id 문자열 (로그아웃 시 초기화)
+    private var currentUserIdLong = 0L       // 서버의 authorId(0)와 동일
+    private var currentUserName = "Green Coach"
 
 
     private var fullFeed: List<Post> = emptyList() // 검색을 위한 “원본 피드”
@@ -59,6 +66,21 @@ class CommunityViewModel @Inject constructor(
     val uiState: StateFlow<CommunityUiState> = _uiState
 
     private fun isLoggedInNow() = !SessionToken.token.isNullOrBlank()
+
+    private fun resetCurrentUser() {
+        currentUserId = "0"
+        currentUserIdLong = 0L
+        currentUserName = "Green Coach"
+    }
+
+    private suspend fun refreshCurrentUser() {
+        runCatching { userRepository.getMe() }
+            .onSuccess { profile ->
+                currentUserId = profile.id.toString()
+                currentUserIdLong = profile.id
+                currentUserName = profile.nickname.takeIf { it.isNotBlank() } ?: "Green Coach"
+            }
+    }
 
     /** 최초 진입/재진입 시 배지 상태 동기화 */
     fun loadMeta() {
@@ -168,13 +190,35 @@ class CommunityViewModel @Inject constructor(
                         if (isLoggedIn) {
                             state.copy(isLoggedIn = true)
                         } else {
+                            resetCurrentUser()
+                            savedPostRepository.clear()
+                            userContributionRepository.clear()
                             state.copy(isLoggedIn = false, unreadCount = 0)
                         }
                     }
                     if (isLoggedIn) {
+                        refreshCurrentUser()
                         loadMeta()
                     }
                 }
+        }
+
+        viewModelScope.launch {
+            savedPostRepository.savedPosts.collect { saved ->
+                val savedIds = saved.map { it.id }.toSet()
+                fullFeed = fullFeed.map { post ->
+                    if (post.bookmarked == savedIds.contains(post.id)) post
+                    else post.copy(bookmarked = savedIds.contains(post.id))
+                }
+                _uiState.update { state ->
+                    state.copy(
+                        feed = state.feed.map { post ->
+                            if (post.bookmarked == savedIds.contains(post.id)) post
+                            else post.copy(bookmarked = savedIds.contains(post.id))
+                        }
+                    )
+                }
+            }
         }
 
         // 소개 게시글을 feed 맨 앞에 넣어둔다
@@ -205,7 +249,7 @@ class CommunityViewModel @Inject constructor(
     fun createPost() {
         val newPost = Post(
             id = System.currentTimeMillis().toString(),
-            author = "Me",
+            author = currentUserName,
             authorTitle = "",
             timeText = "now",
             content = _uiState.value.composerText.trim(),
@@ -222,6 +266,8 @@ class CommunityViewModel @Inject constructor(
 
             // ▼ 현재 검색어 기준으로 화면 목록 재계산
             applySearch(_uiState.value.searchQuery)
+
+            userContributionRepository.recordPost(newPost)
 
             // 입력 초기화
             _uiState.value = _uiState.value.copy(composerText = "")
@@ -244,6 +290,10 @@ class CommunityViewModel @Inject constructor(
         fullFeed = fullFeed.filterNot { it.id == postId }
         // ▼ 현재 검색어 기준으로 화면 목록 재계산
         applySearch(_uiState.value.searchQuery)
+        if (savedPostRepository.isSaved(postId)) {
+            savedPostRepository.remove(postId)
+        }
+        userContributionRepository.removePost(postId)
     }
 
     fun reportPost(postId: String) {
@@ -255,30 +305,63 @@ class CommunityViewModel @Inject constructor(
         val cur = _uiState.value.feed
         val updated = cur.map { p ->
             if (p.id == postId) p.copy(commentCount = (p.commentCount + 1)) else p
-            }
+        }
         _uiState.value = _uiState.value.copy(feed = updated)
+        fullFeed = fullFeed.map { p -> if (p.id == postId) p.copy(commentCount = (p.commentCount + 1)) else p }
+        if (savedPostRepository.isSaved(postId)) {
+            fullFeed.firstOrNull { it.id == postId }?.let { savedPostRepository.update(it) }
+        }
+        fullFeed.firstOrNull { it.id == postId }?.let { post ->
+            if (isOwner(post)) {
+                userContributionRepository.updatePostCommentCount(postId, post.commentCount)
+            }
+        }
     }
 
     fun toggleLike(postId: String) {
-        _uiState.value = _uiState.value.copy(
-            feed = _uiState.value.feed.map { p ->
-                if (p.id == postId) {
-                    val nowLiked = !p.liked
-                    p.copy(
-                        liked = nowLiked,
-                        likeCount = (p.likeCount + if (nowLiked) 1 else -1).coerceAtLeast(0)
-                    )
-                } else p
-            }
+        val post = fullFeed.firstOrNull { it.id == postId } ?: return
+        val newLiked = !post.liked
+        val optimistic = post.copy(
+            liked = newLiked,
+            likeCount = (post.likeCount + if (newLiked) 1 else -1).coerceAtLeast(0)
         )
+        updatePostInState(optimistic)
+
+        if (savedPostRepository.isSaved(postId)) {
+            savedPostRepository.update(optimistic)
+        }
+
+        if (postId == "intro-post") return
+
+        viewModelScope.launch {
+            runCatching {
+                repository.togglePostLike(
+                    postId = postId,
+                    liked = newLiked,
+                    actorId = currentUserIdLong,
+                    actorName = currentUserId
+                )
+            }.onFailure {
+                // rollback
+                updatePostInState(post)
+                if (savedPostRepository.isSaved(postId)) {
+                    savedPostRepository.update(post)
+                }
+            }
+        }
     }
 
     fun toggleBookmark(postId: String) {
-        _uiState.value = _uiState.value.copy(
-            feed = _uiState.value.feed.map {
-                if (it.id == postId) it.copy(bookmarked = !it.bookmarked) else it
-            }
-        )
+        val post = fullFeed.firstOrNull { it.id == postId } ?: return
+        val newState = !post.bookmarked
+        val updated = post.copy(bookmarked = newState)
+        updatePostInState(updated)
+
+        if (newState) {
+            savedPostRepository.save(updated)
+        } else {
+            savedPostRepository.remove(postId)
+        }
     }
 
     // 헬퍼 추가
@@ -337,11 +420,22 @@ class CommunityViewModel @Inject constructor(
             runCatching { repository.getComments(postId) }
                 .onSuccess { raw ->
                     val list = markOwnership(raw)
-                    val count = /* ... */ list.sumOf { 1 + it.replies.size } // 기존 totalComments 사용
-                    _uiState.value = _uiState.value.copy(
-                        activeComments = list,
-                        feed = _uiState.value.feed.map { p -> if (p.id == postId) p.copy(commentCount = count) else p }
-                    )
+                    val count = totalComments(list)
+                    _uiState.update { state ->
+                        state.copy(
+                            activeComments = list,
+                            feed = state.feed.map { p -> if (p.id == postId) p.copy(commentCount = count) else p }
+                        )
+                    }
+                    fullFeed = fullFeed.map { p -> if (p.id == postId) p.copy(commentCount = count) else p }
+                    if (savedPostRepository.isSaved(postId)) {
+                        fullFeed.firstOrNull { it.id == postId }?.let { savedPostRepository.update(it) }
+                    }
+                    fullFeed.firstOrNull { it.id == postId }?.let { post ->
+                        if (isOwner(post)) {
+                            userContributionRepository.updatePostCommentCount(postId, count)
+                        }
+                    }
                 }
                 .onFailure {
                     _uiState.value = _uiState.value.copy(activeComments = emptyList())
@@ -417,10 +511,11 @@ class CommunityViewModel @Inject constructor(
                     body = CreateCommentRequest(
                         content = contentToSend,
                         parentId = parentIdLong,
-                        authorName = "Green Coach"
+                        authorName = currentUserName
                     )
                 )
-            }.onSuccess {
+            }.onSuccess { created ->
+                userContributionRepository.recordReview(created)
                 // 3) 서버에서 목록 재조회 → 부모 아래 정확히 표시
                 loadComments(postId)
 
@@ -434,7 +529,6 @@ class CommunityViewModel @Inject constructor(
                 )
 
             }.onFailure { e ->
-                // TODO: 스낵바로 바꿔도 됨
                 println("createComment failed: ${e.message}")
             }
         }
@@ -445,38 +539,87 @@ class CommunityViewModel @Inject constructor(
         val postId = _uiState.value.activePostIdForComments ?: return
         viewModelScope.launch {
             runCatching { repository.deleteComment(commentId) }
-            .onSuccess {
-                // 서버 상태 기준으로 다시 가져오며 카운트도 동기화
-                loadComments(postId)
-            }
+                .onSuccess {
+                    userContributionRepository.removeReview(commentId)
+                    // 서버 상태 기준으로 다시 가져오며 카운트도 동기화
+                    loadComments(postId)
+                }
         }
     }
 
 
     // ★ 좋아요 토글
     fun likeComment(commentId: String) {
-        _uiState.value = _uiState.value.copy(
-            activeComments = _uiState.value.activeComments.map { c ->
-                if (c.id == commentId) c.copy(
-                    liked = !c.liked,
-                    likeCount = (c.likeCount + if (!c.liked) 1 else -1).coerceAtLeast(0)
+        val current = findCommentById(commentId)
+        val newLiked = current?.liked?.not() ?: true
+        updateCommentInState(commentId) { comment ->
+            comment.copy(
+                liked = newLiked,
+                likeCount = (comment.likeCount + if (newLiked) 1 else -1).coerceAtLeast(0)
+            )
+        }
+
+        viewModelScope.launch {
+            runCatching {
+                repository.toggleCommentLike(
+                    commentId = commentId,
+                    liked = newLiked,
+                    actorId = currentUserIdLong,
+                    actorName = currentUserId
                 )
-                else c.copy(replies = c.replies.map { r ->
-                    if (r.id == commentId) r.copy(
-                        liked = !r.liked,
-                        likeCount = (r.likeCount + if (!r.liked) 1 else -1).coerceAtLeast(0)
-                    ) else r
-                })
+            }.onFailure {
+                // rollback on failure
+                current?.let { original ->
+                    updateCommentInState(commentId) { original }
+                }
             }
-        )
+        }
     }
 
-    // 댓글/대댓글의 isOwner를 currentUserId("me")로 판별해 채운다.
+    private fun findCommentById(commentId: String): Comment? {
+        fun find(list: List<Comment>): Comment? {
+            list.forEach { comment ->
+                if (comment.id == commentId) return comment
+                find(comment.replies)?.let { return it }
+            }
+            return null
+        }
+        return find(_uiState.value.activeComments)
+    }
+
+    private fun updateCommentInState(commentId: String, transform: (Comment) -> Comment) {
+        fun update(list: List<Comment>): List<Comment> =
+            list.map { comment ->
+                when {
+                    comment.id == commentId -> transform(comment)
+                    comment.replies.isNotEmpty() -> comment.copy(replies = update(comment.replies))
+                    else -> comment
+                }
+            }
+
+        _uiState.update { state ->
+            state.copy(activeComments = update(state.activeComments))
+        }
+    }
+
+    private fun updatePostInState(updated: Post) {
+        fullFeed = fullFeed.map { if (it.id == updated.id) updated else it }
+        _uiState.update { state ->
+            state.copy(
+                feed = state.feed.map { if (it.id == updated.id) updated else it }
+            )
+        }
+        if (isOwner(updated)) {
+            userContributionRepository.updatePost(updated)
+        }
+    }
+
+    // 댓글/대댓글의 isOwner를 현재 로그인 사용자와 비교해 채운다.
     private fun markOwnership(list: List<Comment>): List<Comment> {
         fun mark(c: Comment): Comment {
             val owned = when {
                 c.authorId != null && c.authorId == currentUserIdLong -> true
-                !c.author.isNullOrBlank() && c.author.equals(currentUserId, ignoreCase = true) -> true
+                !c.author.isNullOrBlank() && c.author.equals(currentUserName, ignoreCase = true) -> true
                 else -> false
             }
             return c.copy(

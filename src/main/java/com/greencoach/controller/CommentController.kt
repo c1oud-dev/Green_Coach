@@ -2,6 +2,7 @@ package com.greencoach.controller
 
 import com.greencoach.model.community.CommentDto
 import com.greencoach.model.community.CreateCommentRequest
+import com.greencoach.model.community.ToggleCommentLikeRequest
 import com.greencoach.service.CommentService
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
@@ -28,8 +29,11 @@ class CommentController(
 
     /** 댓글 좋아요 */
     @PostMapping("/comments/{commentId}/like")
-    fun like(@PathVariable commentId: Long): ResponseEntity<CommentDto> =
-        ResponseEntity.ok(commentService.likeComment(commentId))
+    fun like(
+        @PathVariable commentId: Long,
+        @RequestBody req: ToggleCommentLikeRequest
+    ): ResponseEntity<CommentDto> =
+        ResponseEntity.ok(commentService.likeComment(commentId, req))
 
     /** 댓글 삭제 */
     @DeleteMapping("/comments/{commentId}")

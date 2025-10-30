@@ -4,7 +4,9 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Bookmark
 import androidx.compose.material.icons.filled.BookmarkBorder
+import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.IosShare
 import androidx.compose.material.icons.outlined.ChatBubbleOutline
@@ -20,6 +22,9 @@ import androidx.compose.ui.unit.dp
 fun ReactionRow(
     likeCount: Int,
     commentCount: Int,
+    liked: Boolean,
+    bookmarked: Boolean,
+    showBookmark: Boolean,
     onLike: () -> Unit,
     onBookmark: () -> Unit,
     onComment: () -> Unit
@@ -32,7 +37,10 @@ fun ReactionRow(
             // 좋아요 아이콘 + 숫자
             Row(verticalAlignment = Alignment.CenterVertically) {
                 IconButton(onClick = onLike) {
-                    Icon(Icons.Filled.FavoriteBorder, contentDescription = "Like")
+                    Icon(
+                        imageVector = if (liked) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
+                        contentDescription = "Like"
+                    )
                 }
                 Text(formatCount(likeCount))
             }
@@ -48,12 +56,12 @@ fun ReactionRow(
             }
         }
         // 오른쪽: 공유 + 북마크
-        Row {
-            IconButton(onClick = { /* share */ }) {
-                Icon(Icons.Filled.IosShare, contentDescription = "Share")
-            }
+        if (showBookmark) {
             IconButton(onClick = onBookmark) {
-                Icon(Icons.Filled.BookmarkBorder, contentDescription = "Bookmark")
+                Icon(
+                    imageVector = if (bookmarked) Icons.Filled.Bookmark else Icons.Filled.BookmarkBorder,
+                    contentDescription = "Bookmark"
+                )
             }
         }
     }
